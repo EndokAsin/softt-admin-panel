@@ -462,6 +462,7 @@
         });
 
         // --- CSV Import Listeners ---
+        // FIX: Added listeners for all CSV inputs
         document.getElementById('speaker-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'speakers', document.getElementById('speaker-import-status')));
         document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
         document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
@@ -470,10 +471,10 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true,
+                header: true, skipEmptyLines: true, delimiter: "",
                 complete: async (results) => {
                     if (results.errors.length) {
-                        statusElement.textContent = 'Gagal mem-parsing CSV.';
+                        statusElement.textContent = 'Gagal mem-parsing CSV. Periksa format.';
                         return alert('Gagal mem-parsing CSV.');
                     }
                     const { error } = await supabaseClient.from(tableName).insert(results.data);
@@ -493,7 +494,7 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true,
+                header: true, skipEmptyLines: true, delimiter: "",
                 complete: async (results) => {
                     if (results.errors.length) return alert('Gagal mem-parsing CSV.');
                     
