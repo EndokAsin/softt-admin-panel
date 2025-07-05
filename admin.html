@@ -109,8 +109,6 @@
         // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
-        
-        // FIX: Changed variable name from 'supabase' to 'supabaseClient' to avoid conflict.
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- Elemen DOM ---
@@ -129,9 +127,7 @@
 
         // --- Fungsi Utama ---
 
-        // Fungsi untuk memeriksa peran pengguna di tabel 'profiles'
         async function getUserRole(userId) {
-            // FIX: Using supabaseClient
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('role')
@@ -140,40 +136,28 @@
 
             if (error) {
                 console.error("Gagal memeriksa peran pengguna:", error);
-                return null;
+                // Kembalikan objek error untuk penanganan lebih lanjut
+                return { role: null, error: "Profil pengguna tidak ditemukan atau terjadi error." };
             }
-            return data ? data.role : null;
+            return { role: data ? data.role : null, error: null };
         }
 
-        // Fungsi untuk menampilkan dasbor jika pengguna adalah admin
         async function showDashboard() {
-            // FIX: Using supabaseClient
             const { data: { session } } = await supabaseClient.auth.getSession();
-
             if (session) {
-                const userRole = await getUserRole(session.user.id);
-                if (userRole === 'admin') {
-                    loginPage.classList.add('hidden');
-                    dashboardPage.classList.remove('hidden');
-                    adminEmail.textContent = session.user.email;
-                    await loadSpeakers();
-                } else {
-                    // Jika bukan admin, logout dan tampilkan pesan
-                    await supabaseClient.auth.signOut();
-                    loginError.textContent = 'Akses ditolak. Hanya admin yang dapat login.';
-                }
+                loginPage.classList.add('hidden');
+                dashboardPage.classList.remove('hidden');
+                adminEmail.textContent = session.user.email;
+                await loadSpeakers();
             } else {
                 loginPage.classList.remove('hidden');
                 dashboardPage.classList.add('hidden');
             }
         }
 
-        // Fungsi untuk memuat dan menampilkan daftar pembicara
         async function loadSpeakers() {
             speakersList.innerHTML = '<p>Memuat data...</p>';
-            // FIX: Using supabaseClient
             const { data, error } = await supabaseClient.from('speakers').select('*').order('name');
-
             if (error) {
                 speakersList.innerHTML = '<p class="text-red-500">Gagal memuat data pembicara.</p>';
                 return;
@@ -194,7 +178,6 @@
 
         // --- Event Listeners ---
 
-        // Handler untuk form login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             loginError.textContent = '';
@@ -204,13 +187,27 @@
 
             const email = loginForm.email.value;
             const password = loginForm.password.value;
-            // FIX: Using supabaseClient
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            // 1. Coba login
+            const { data: loginData, error: loginErrorMsg } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-            if (error) {
+            if (loginErrorMsg) {
                 loginError.textContent = 'Login gagal: Email atau password salah.';
-            } else {
-                await showDashboard();
+            } else if (loginData.user) {
+                // 2. Jika login berhasil, periksa peran
+                const { role, error: roleError } = await getUserRole(loginData.user.id);
+
+                if (roleError) {
+                    loginError.textContent = `Error: ${roleError}`;
+                    await supabaseClient.auth.signOut(); // Logout jika profil tidak ditemukan
+                } else if (role === 'admin') {
+                    // 3. Jika peran adalah admin, tampilkan dasbor
+                    await showDashboard();
+                } else {
+                    // 4. Jika bukan admin, tolak akses
+                    loginError.textContent = 'Akses ditolak. Akun ini bukan admin.';
+                    await supabaseClient.auth.signOut();
+                }
             }
 
             loginButton.disabled = false;
@@ -218,14 +215,11 @@
             loginSpinner.classList.add('hidden');
         });
 
-        // Handler untuk tombol logout
         logoutButton.addEventListener('click', async () => {
-            // FIX: Using supabaseClient
             await supabaseClient.auth.signOut();
-            location.reload(); // Muat ulang halaman untuk kembali ke login
+            location.reload();
         });
 
-        // Handler untuk impor file CSV
         csvFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) {
@@ -243,9 +237,7 @@
                         console.error('CSV Parsing Errors:', results.errors);
                         return;
                     }
-
                     try {
-                        // FIX: Using supabaseClient
                         const { error } = await supabaseClient.from('speakers').insert(results.data);
                         if (error) {
                             importStatus.textContent = `Gagal mengimpor: ${error.message}`;
@@ -262,6 +254,7 @@
 
         // --- Inisialisasi saat halaman dimuat ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Coba tampilkan dasbor jika sudah ada sesi login yang aktif
             showDashboard();
         });
 
