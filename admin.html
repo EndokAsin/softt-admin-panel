@@ -206,12 +206,30 @@
         }
 
         // --- Render Functions ---
-        function renderSpeakers() { /* ... implementasi di bawah ... */ }
-        function renderSchedule() { /* ... implementasi di bawah ... */ }
-        function renderProgram() { /* ... implementasi di bawah ... */ }
+        // FIX: Removed placeholder declarations.
         
         // --- Form Generators ---
-        function createForm(fields, onSubmit) { /* ... implementasi di bawah ... */ }
+        function createForm(fields, onSubmit) {
+            const form = document.createElement('form');
+            form.className = 'space-y-4';
+            form.id = 'modal-form';
+            form.innerHTML = fields.map(f => `
+                <div>
+                    <label for="${f.id}" class="block text-sm font-medium text-gray-700">${f.label}</label>
+                    ${f.type === 'textarea' ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
+                    : f.type === 'select' ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
+                    : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
+                    }
+                </div>
+            `).join('');
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.className = 'w-full btn btn-primary mt-6';
+            submitButton.textContent = 'Simpan';
+            form.appendChild(submitButton);
+            form.addEventListener('submit', (e) => { e.preventDefault(); onSubmit(form); });
+            return form;
+        }
         
         // --- Modal & Form Handling ---
         function showModal(title, formElement) {
@@ -336,28 +354,6 @@
                     </div>
                 </div>
             `).join('') : '<p>Belum ada program yang dibuat.</p>';
-        }
-        
-        function createForm(fields, onSubmit) {
-            const form = document.createElement('form');
-            form.className = 'space-y-4';
-            form.id = 'modal-form';
-            form.innerHTML = fields.map(f => `
-                <div>
-                    <label for="${f.id}" class="block text-sm font-medium text-gray-700">${f.label}</label>
-                    ${f.type === 'textarea' ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
-                    : f.type === 'select' ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
-                    : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
-                    }
-                </div>
-            `).join('');
-            const submitButton = document.createElement('button');
-            submitButton.type = 'submit';
-            submitButton.className = 'w-full btn btn-primary mt-6';
-            submitButton.textContent = 'Simpan';
-            form.appendChild(submitButton);
-            form.addEventListener('submit', (e) => { e.preventDefault(); onSubmit(form); });
-            return form;
         }
         
         // --- Event Delegation untuk Tombol Dinamis ---
@@ -490,28 +486,24 @@
                     
                     for (const row of results.data) {
                         try {
-                            // Find or create Track
                             let { data: track } = await supabaseClient.from('tracks').select('id').eq('name', row.track_name).single();
                             if (!track) {
                                 const { data: newTrack } = await supabaseClient.from('tracks').insert({name: row.track_name}).select().single();
                                 track = newTrack;
                             }
                             
-                            // Find or create Topic
                             let { data: topic } = await supabaseClient.from('topics').select('id').eq('name', row.topic_name).eq('track_id', track.id).single();
                             if (!topic) {
                                 const { data: newTopic } = await supabaseClient.from('topics').insert({name: row.topic_name, track_id: track.id}).select().single();
                                 topic = newTopic;
                             }
                             
-                            // Find Speaker ID
                             let speakerId = null;
                             if (row.speaker_name) {
                                 const { data: speaker } = await supabaseClient.from('speakers').select('id').eq('name', row.speaker_name).single();
                                 if (speaker) speakerId = speaker.id;
                             }
                             
-                            // Insert Paper
                             await supabaseClient.from('papers').insert({
                                 topic_id: topic.id,
                                 title: row.paper_title,
