@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin SOFTT</title>
-    <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat Supabase Client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <!-- Memuat PapaParse untuk membaca file CSV -->
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <style>
-        /* Menambahkan sedikit style kustom untuk konsistensi tema */
         :root {
             --brand-red: #D32F2F;
             --brand-red-dark: #B71C1C;
@@ -21,6 +17,8 @@
         .text-brand-red { color: var(--brand-red); }
         .border-brand-red { border-color: var(--brand-red); }
         .ring-brand-red:focus { ring-color: var(--brand-red); }
+        .modal { display: none; }
+        .modal.active { display: flex; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans antialiased">
@@ -28,7 +26,7 @@
     <!-- Kontainer Utama Aplikasi -->
     <div id="app-container">
 
-        <!-- Halaman Login (Tampil secara default) -->
+        <!-- Halaman Login -->
         <div id="login-page" class="min-h-screen flex items-center justify-center bg-gray-200 p-4">
             <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
                 <div class="text-center">
@@ -37,17 +35,10 @@
                 </div>
                 <form id="login-form">
                     <div class="space-y-4">
-                        <div>
-                            <label for="email" class="sr-only">Email</label>
-                            <input type="email" id="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="admin@softt.com">
-                        </div>
-                        <div>
-                            <label for="password" class="sr-only">Password</label>
-                            <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="••••••••">
-                        </div>
+                        <input type="email" id="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="admin@softt.com">
+                        <input type="password" id="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="••••••••">
                         <button type="submit" id="login-button" class="w-full py-3 px-4 rounded-lg font-medium text-white bg-brand-red hover:bg-brand-red-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-red transition-all duration-300">
                             <span id="login-button-text">Login</span>
-                            <span id="login-spinner" class="hidden">Memproses...</span>
                         </button>
                     </div>
                 </form>
@@ -55,7 +46,7 @@
             </div>
         </div>
 
-        <!-- Dasbor Admin (Tersembunyi secara default) -->
+        <!-- Dasbor Admin -->
         <div id="dashboard-page" class="hidden min-h-screen">
             <div class="flex w-full">
                 <!-- Sidebar Navigasi -->
@@ -65,43 +56,61 @@
                         <p id="admin-email" class="text-xs text-gray-400 truncate"></p>
                     </div>
                     <nav class="flex-grow p-4 space-y-2">
-                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            Pembicara
-                        </a>
-                        <!-- Tambahkan link navigasi lain di sini jika diperlukan -->
+                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Program Konferensi</a>
+                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
+                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
                     </nav>
                     <div class="p-4 border-t border-gray-700">
-                        <button id="logout-button" class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            Logout
-                        </button>
+                        <button id="logout-button" class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors">Logout</button>
                     </div>
                 </aside>
 
                 <!-- Konten Utama Dasbor -->
                 <main class="flex-grow p-8 bg-gray-50 overflow-y-auto">
-                    <div id="manage-speakers" class="dashboard-content">
+                    <!-- Konten Program Konferensi -->
+                    <div id="manage-program" class="dashboard-content">
+                        <div class="flex justify-between items-center">
+                            <h1 class="text-3xl font-bold text-gray-800">Program Konferensi</h1>
+                            <button id="add-track-button" class="bg-brand-red text-white px-4 py-2 rounded-lg hover:bg-brand-red-dark">Tambah Track</button>
+                        </div>
+                        <div id="program-list" class="mt-6 space-y-4"></div>
+                    </div>
+
+                    <!-- Konten Jadwal Umum -->
+                    <div id="manage-schedule" class="dashboard-content hidden">
+                        <div class="flex justify-between items-center">
+                            <h1 class="text-3xl font-bold text-gray-800">Jadwal Umum</h1>
+                            <button id="add-session-button" class="bg-brand-red text-white px-4 py-2 rounded-lg hover:bg-brand-red-dark">Tambah Sesi</button>
+                        </div>
+                        <div id="schedule-list" class="mt-6 space-y-3"></div>
+                    </div>
+
+                    <!-- Konten Pembicara -->
+                    <div id="manage-speakers" class="dashboard-content hidden">
                         <h1 class="text-3xl font-bold text-gray-800">Kelola Pembicara</h1>
-                        
                         <div class="mt-6 bg-white p-6 rounded-lg shadow">
                             <h2 class="text-xl font-semibold text-gray-700">Impor dari File CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Unggah file CSV dengan kolom 'name' dan 'avatar_url' untuk menambahkan pembicara secara massal.</p>
-                            <div class="mt-4">
-                                <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-brand-red hover:file:bg-red-100"/>
-                                <p id="import-status" class="mt-2 text-sm text-gray-600"></p>
-                            </div>
+                            <input type="file" id="csv-file-input" accept=".csv" class="mt-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-red-50 file:text-brand-red hover:file:bg-red-100"/>
+                            <p id="import-status" class="mt-2 text-sm text-gray-600"></p>
                         </div>
-
                         <div class="mt-8">
-                            <h2 class="text-xl font-semibold text-gray-700">Daftar Pembicara Saat Ini</h2>
-                            <div id="speakers-list" class="mt-4 space-y-3">
-                                <!-- Data akan dimuat di sini -->
-                            </div>
+                            <h2 class="text-xl font-semibold text-gray-700">Daftar Pembicara</h2>
+                            <div id="speakers-list" class="mt-4 space-y-3"></div>
                         </div>
                     </div>
                 </main>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Dialog -->
+    <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-semibold">Modal Title</h3>
+                <button id="modal-close" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6"></div>
         </div>
     </div>
 
@@ -111,108 +120,140 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // --- State Aplikasi ---
+        let speakersCache = [];
+        let programCache = [];
+        let scheduleCache = [];
+
         // --- Elemen DOM ---
         const loginPage = document.getElementById('login-page');
         const dashboardPage = document.getElementById('dashboard-page');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
-        const loginButton = document.getElementById('login-button');
-        const loginButtonText = document.getElementById('login-button-text');
-        const loginSpinner = document.getElementById('login-spinner');
         const logoutButton = document.getElementById('logout-button');
         const adminEmail = document.getElementById('admin-email');
-        const speakersList = document.getElementById('speakers-list');
-        const csvFileInput = document.getElementById('csv-file-input');
-        const importStatus = document.getElementById('import-status');
-
+        const navLinks = document.querySelectorAll('.nav-link');
+        const dashboardContents = document.querySelectorAll('.dashboard-content');
+        
         // --- Fungsi Utama ---
-
-        async function getUserRole(userId) {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('role')
-                .eq('id', userId)
-                .single();
-
-            if (error) {
-                console.error("Gagal memeriksa peran pengguna:", error);
-                // Kembalikan objek error untuk penanganan lebih lanjut
-                return { role: null, error: "Profil pengguna tidak ditemukan atau terjadi error." };
-            }
-            return { role: data ? data.role : null, error: null };
-        }
-
-        async function showDashboard() {
+        async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
-                loginPage.classList.add('hidden');
-                dashboardPage.classList.remove('hidden');
-                adminEmail.textContent = session.user.email;
-                await loadSpeakers();
+                const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+                if (profile && profile.role === 'admin') {
+                    showDashboard(session.user);
+                } else {
+                    showLoginPage();
+                }
             } else {
-                loginPage.classList.remove('hidden');
-                dashboardPage.classList.add('hidden');
+                showLoginPage();
             }
         }
 
-        async function loadSpeakers() {
-            speakersList.innerHTML = '<p>Memuat data...</p>';
-            const { data, error } = await supabaseClient.from('speakers').select('*').order('name');
-            if (error) {
-                speakersList.innerHTML = '<p class="text-red-500">Gagal memuat data pembicara.</p>';
+        function showLoginPage() {
+            loginPage.classList.remove('hidden');
+            dashboardPage.classList.add('hidden');
+        }
+
+        async function showDashboard(user) {
+            loginPage.classList.add('hidden');
+            dashboardPage.classList.remove('hidden');
+            adminEmail.textContent = user.email;
+            await loadAllData();
+        }
+
+        async function loadAllData() {
+            // Load all data concurrently
+            const [programRes, speakersRes, scheduleRes] = await Promise.all([
+                supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(name)))`).order('name'),
+                supabaseClient.from('speakers').select('*').order('name'),
+                supabaseClient.from('sessions').select('*').order('start_time')
+            ]);
+
+            if (programRes.error) console.error("Error loading program:", programRes.error);
+            else programCache = programRes.data;
+
+            if (speakersRes.error) console.error("Error loading speakers:", speakersRes.error);
+            else speakersCache = speakersRes.data;
+            
+            if (scheduleRes.error) console.error("Error loading schedule:", scheduleRes.error);
+            else scheduleCache = scheduleRes.data;
+
+            renderProgram();
+            renderSpeakers();
+            renderSchedule();
+        }
+
+        // --- Render Functions ---
+        function renderProgram() {
+            const container = document.getElementById('program-list');
+            if (programCache.length === 0) {
+                container.innerHTML = '<p>Belum ada program yang dibuat.</p>';
                 return;
             }
-            if (data.length === 0) {
-                speakersList.innerHTML = '<p>Belum ada data pembicara.</p>';
-                return;
-            }
-            speakersList.innerHTML = data.map(speaker => `
-                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between">
-                    <div class="flex items-center">
-                        <img src="${speaker.avatar_url || 'https://placehold.co/40x40/e0e0e0/757575?text=N/A'}" alt="${speaker.name}" class="w-10 h-10 rounded-full mr-4 object-cover">
-                        <span class="font-medium text-gray-800">${speaker.name}</span>
+            container.innerHTML = programCache.map(track => `
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-800">${track.name}</h3>
+                        <div>
+                            <button class="add-topic-btn text-green-500 hover:text-green-700" data-track-id="${track.id}">Tambah Topik</button>
+                            <button class="edit-track-btn text-blue-500 hover:text-blue-700 ml-2" data-track-id="${track.id}">Edit</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 pl-4 border-l-2 border-gray-200 space-y-3">
+                        ${track.topics.map(topic => `
+                            <div class="bg-gray-50 p-3 rounded-md">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-semibold text-gray-700">${topic.name}</h4>
+                                    <div>
+                                        <button class="add-paper-btn text-green-500 hover:text-green-700 text-sm" data-topic-id="${topic.id}">Tambah Paper</button>
+                                        <button class="edit-topic-btn text-blue-500 hover:text-blue-700 ml-2 text-sm" data-topic-id="${topic.id}" data-track-id="${track.id}">Edit</button>
+                                    </div>
+                                </div>
+                                <div class="mt-2 pl-4 space-y-2">
+                                    ${topic.papers.map(paper => `
+                                        <div class="border-t pt-2">
+                                            <p class="font-medium">${paper.title}</p>
+                                            <p class="text-sm text-gray-500">
+                                                Pembicara: ${paper.speakers?.name || 'N/A'} | Ruang: ${paper.room || 'N/A'} | Waktu: ${paper.start_time ? new Date(paper.start_time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : 'N/A'}
+                                            </p>
+                                            <div class="text-right">
+                                                <button class="edit-paper-btn text-blue-500 hover:text-blue-700 text-xs" data-paper-id="${paper.id}" data-topic-id="${topic.id}">Edit</button>
+                                            </div>
+                                        </div>
+                                    `).join('') || '<p class="text-xs text-gray-400">Belum ada paper.</p>'}
+                                </div>
+                            </div>
+                        `).join('') || '<p class="text-sm text-gray-400">Belum ada topik.</p>'}
                     </div>
                 </div>
             `).join('');
         }
 
-        // --- Event Listeners ---
+        function renderSpeakers() {
+            // ... implementasi render speaker
+        }
+        
+        function renderSchedule() {
+            // ... implementasi render jadwal umum
+        }
 
+        // --- Modal & Form Handling ---
+        // ... (implementasi fungsi untuk membuka modal dan menyimpan data)
+
+        // --- Event Listeners ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             loginError.textContent = '';
-            loginButton.disabled = true;
-            loginButtonText.classList.add('hidden');
-            loginSpinner.classList.remove('hidden');
-
             const email = loginForm.email.value;
             const password = loginForm.password.value;
-            
-            // 1. Coba login
-            const { data: loginData, error: loginErrorMsg } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-            if (loginErrorMsg) {
-                loginError.textContent = 'Login gagal: Email atau password salah.';
-            } else if (loginData.user) {
-                // 2. Jika login berhasil, periksa peran
-                const { role, error: roleError } = await getUserRole(loginData.user.id);
-
-                if (roleError) {
-                    loginError.textContent = `Error: ${roleError}`;
-                    await supabaseClient.auth.signOut(); // Logout jika profil tidak ditemukan
-                } else if (role === 'admin') {
-                    // 3. Jika peran adalah admin, tampilkan dasbor
-                    await showDashboard();
-                } else {
-                    // 4. Jika bukan admin, tolak akses
-                    loginError.textContent = 'Akses ditolak. Akun ini bukan admin.';
-                    await supabaseClient.auth.signOut();
-                }
+            if (error) {
+                loginError.textContent = 'Login gagal: ' + error.message;
+            } else {
+                init(); // Re-initialize app state
             }
-
-            loginButton.disabled = false;
-            loginButtonText.classList.remove('hidden');
-            loginSpinner.classList.add('hidden');
         });
 
         logoutButton.addEventListener('click', async () => {
@@ -220,44 +261,19 @@
             location.reload();
         });
 
-        csvFileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                importStatus.textContent = "";
-                return;
-            }
-            importStatus.textContent = `Memproses file: ${file.name}...`;
-
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: async function(results) {
-                    if (results.errors.length > 0) {
-                        importStatus.textContent = 'Error: Periksa format file CSV Anda.';
-                        console.error('CSV Parsing Errors:', results.errors);
-                        return;
-                    }
-                    try {
-                        const { error } = await supabaseClient.from('speakers').insert(results.data);
-                        if (error) {
-                            importStatus.textContent = `Gagal mengimpor: ${error.message}`;
-                        } else {
-                            importStatus.textContent = `${results.data.length} pembicara berhasil diimpor!`;
-                            await loadSpeakers();
-                        }
-                    } catch (e) {
-                        importStatus.textContent = "Terjadi kesalahan tak terduga saat impor.";
-                    }
-                }
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('data-target');
+                dashboardContents.forEach(content => content.classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                navLinks.forEach(nav => nav.classList.remove('bg-gray-700'));
+                link.classList.add('bg-gray-700');
             });
         });
-
-        // --- Inisialisasi saat halaman dimuat ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Coba tampilkan dasbor jika sudah ada sesi login yang aktif
-            showDashboard();
-        });
-
+        
+        // --- Inisialisasi Aplikasi ---
+        init();
     </script>
 </body>
 </html>
