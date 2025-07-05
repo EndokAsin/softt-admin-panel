@@ -60,20 +60,10 @@
                         <h2 class="text-xl font-bold">Admin SOFTT</h2>
                         <p id="admin-email" class="text-xs text-gray-400 truncate"></p>
                     </div>
-                    <!-- FIX: Added ID to nav container for event delegation -->
                     <nav id="sidebar-nav" class="flex-grow p-4 space-y-2">
-                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            Program
-                        </a>
-                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            Jadwal Umum
-                        </a>
-                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            Pembicara
-                        </a>
+                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Program Konferensi</a>
+                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
+                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
                     </nav>
                     <div class="p-4 border-t border-gray-700">
                         <button id="logout-button" class="w-full btn bg-red-600 hover:bg-red-700">Logout</button>
@@ -90,8 +80,9 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Paper dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `track_name`, `topic_name`, `paper_title`. Kolom opsional: `speaker_name`, `paper_abstract`, `room`, `start_time`, `end_time`.</p>
+                            <p class="text-sm text-gray-500 mt-1">Kolom: `track_name`, `topic_name`, `paper_title`, `speaker_name`, `paper_abstract`, `room`, `start_time`, `end_time`.</p>
                             <input type="file" id="program-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
+                            <p id="program-import-status" class="mt-2 text-sm font-medium"></p>
                         </div>
                         <div id="program-list" class="space-y-4"></div>
                     </div>
@@ -104,8 +95,9 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Sesi dari CSV</h2>
-                             <p class="text-sm text-gray-500 mt-1">Kolom wajib: `title`, `start_time`, `end_time`. Kolom opsional: `speaker`, `description`.</p>
+                             <p class="text-sm text-gray-500 mt-1">Kolom: `title`, `start_time`, `end_time`, `speaker`, `description`.</p>
                             <input type="file" id="schedule-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
+                             <p id="schedule-import-status" class="mt-2 text-sm font-medium"></p>
                         </div>
                         <div id="schedule-list" class="mt-6 bg-white p-4 rounded-lg shadow"></div>
                     </div>
@@ -118,8 +110,9 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Pembicara dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `name`. Kolom opsional: `avatar_url`.</p>
+                            <p class="text-sm text-gray-500 mt-1">Kolom: `name`, `avatar_url`.</p>
                             <input type="file" id="speaker-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
+                            <p id="speaker-import-status" class="mt-2 text-sm font-medium"></p>
                         </div>
                         <div class="mt-8">
                             <h2 class="text-xl font-semibold text-gray-700">Daftar Pembicara</h2>
@@ -160,7 +153,7 @@
         const loginError = document.getElementById('login-error');
         const logoutButton = document.getElementById('logout-button');
         const adminEmail = document.getElementById('admin-email');
-        const sidebarNav = document.getElementById('sidebar-nav'); // FIX: Get nav container
+        const sidebarNav = document.getElementById('sidebar-nav');
         const dashboardContents = document.querySelectorAll('.dashboard-content');
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modal-title');
@@ -213,13 +206,65 @@
         }
 
         // --- Render Functions ---
+        function renderSpeakers() { /* ... implementasi di bawah ... */ }
+        function renderSchedule() { /* ... implementasi di bawah ... */ }
+        function renderProgram() { /* ... implementasi di bawah ... */ }
+        
+        // --- Form Generators ---
+        function createForm(fields, onSubmit) { /* ... implementasi di bawah ... */ }
+        
+        // --- Modal & Form Handling ---
+        function showModal(title, formElement) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = '';
+            modalBody.appendChild(formElement);
+            modal.classList.add('active');
+        }
+
+        function hideModal() {
+            modal.classList.remove('active');
+            modalBody.innerHTML = '';
+        }
+
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) loginError.textContent = 'Login gagal: ' + error.message;
+            else init();
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        });
+
+        sidebarNav.addEventListener('click', (e) => {
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                e.preventDefault();
+                const targetId = link.dataset.target;
+                dashboardContents.forEach(content => content.classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('bg-gray-700'));
+                link.classList.add('bg-gray-700');
+            }
+        });
+
+        modalClose.addEventListener('click', hideModal);
+        
+        // --- Inisialisasi Aplikasi ---
+        init();
+
+        // --- Implementasi Detail ---
+        
+        // Render Speakers
         function renderSpeakers() {
             const container = document.getElementById('speakers-list');
-            if (speakersCache.length === 0) {
-                container.innerHTML = '<p>Belum ada data pembicara.</p>';
-                return;
-            }
-            container.innerHTML = speakersCache.map(speaker => `
+            container.innerHTML = speakersCache.length > 0 ? speakersCache.map(speaker => `
                 <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between">
                     <div class="flex items-center">
                         <img src="${speaker.avatar_url || 'https://placehold.co/40x40'}" alt="${speaker.name}" class="w-10 h-10 rounded-full mr-4 object-cover">
@@ -230,16 +275,13 @@
                         <button class="delete-speaker-btn btn-delete" data-id="${speaker.id}" data-name="${speaker.name}">Hapus</button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : '<p>Belum ada data pembicara.</p>';
         }
 
+        // Render Schedule
         function renderSchedule() {
             const container = document.getElementById('schedule-list');
-            if (scheduleCache.length === 0) {
-                container.innerHTML = '<p>Belum ada jadwal umum.</p>';
-                return;
-            }
-            container.innerHTML = scheduleCache.map(session => `
+            container.innerHTML = scheduleCache.length > 0 ? scheduleCache.map(session => `
                 <div class="bg-gray-50 p-3 rounded-md flex justify-between items-center">
                     <div>
                         <p class="font-semibold">${session.title}</p>
@@ -250,16 +292,13 @@
                         <button class="delete-session-btn btn-delete" data-id="${session.id}" data-name="${session.title}">Hapus</button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : '<p>Belum ada jadwal umum.</p>';
         }
 
+        // Render Program
         function renderProgram() {
             const container = document.getElementById('program-list');
-            if (programCache.length === 0) {
-                container.innerHTML = '<p>Belum ada program yang dibuat.</p>';
-                return;
-            }
-            container.innerHTML = programCache.map(track => `
+            container.innerHTML = programCache.length > 0 ? programCache.map(track => `
                 <div class="bg-white rounded-lg shadow-md p-4">
                     <div class="flex justify-between items-center">
                         <h3 class="text-xl font-bold text-gray-800">${track.name}</h3>
@@ -296,10 +335,9 @@
                         `).join('') || '<p class="text-sm text-gray-400">Belum ada topik.</p>'}
                     </div>
                 </div>
-            `).join('');
+            `).join('') : '<p>Belum ada program yang dibuat.</p>';
         }
         
-        // --- Form Generators ---
         function createForm(fields, onSubmit) {
             const form = document.createElement('form');
             form.className = 'space-y-4';
@@ -307,11 +345,9 @@
             form.innerHTML = fields.map(f => `
                 <div>
                     <label for="${f.id}" class="block text-sm font-medium text-gray-700">${f.label}</label>
-                    ${f.type === 'textarea' 
-                        ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
-                        : f.type === 'select'
-                        ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
-                        : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
+                    ${f.type === 'textarea' ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
+                    : f.type === 'select' ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
+                    : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
                     }
                 </div>
             `).join('');
@@ -320,137 +356,181 @@
             submitButton.className = 'w-full btn btn-primary mt-6';
             submitButton.textContent = 'Simpan';
             form.appendChild(submitButton);
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                onSubmit(form);
-            });
+            form.addEventListener('submit', (e) => { e.preventDefault(); onSubmit(form); });
             return form;
         }
         
-        // --- Modal & Form Handling ---
-        function showModal(title, formElement) {
-            modalTitle.textContent = title;
-            modalBody.innerHTML = '';
-            modalBody.appendChild(formElement);
-            modal.classList.add('active');
-        }
-
-        function hideModal() {
-            modal.classList.remove('active');
-            modalBody.innerHTML = '';
-        }
-
-        // --- Event Listeners ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loginError.textContent = '';
-            const email = loginForm.email.value;
-            const password = loginForm.password.value;
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) loginError.textContent = 'Login gagal: ' + error.message;
-            else init();
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            await supabaseClient.auth.signOut();
-            location.reload();
-        });
-
-        // FIX: Replaced individual listeners with event delegation on the nav container
-        sidebarNav.addEventListener('click', (e) => {
-            const link = e.target.closest('.nav-link');
-            if (link) {
-                e.preventDefault();
-                const targetId = link.dataset.target;
-                
-                dashboardContents.forEach(content => content.classList.add('hidden'));
-                document.getElementById(targetId).classList.remove('hidden');
-                
-                document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('bg-gray-700'));
-                link.classList.add('bg-gray-700');
-            }
-        });
-
-        modalClose.addEventListener('click', hideModal);
-        
+        // --- Event Delegation untuk Tombol Dinamis ---
         document.body.addEventListener('click', async e => {
             const target = e.target;
             
             // --- Program Management ---
-            if (target.id === 'add-track-button') {
-                const form = createForm([{label: 'Nama Track', id: 'name'}], async formEl => {
-                    await supabaseClient.from('tracks').insert({name: formEl.name.value});
-                    hideModal(); loadAllData();
+            if (target.id === 'add-track-button' || target.matches('.edit-track-btn')) {
+                const isEdit = target.matches('.edit-track-btn');
+                const track = isEdit ? programCache.find(t => t.id == target.dataset.id) : null;
+                const form = createForm([{label: 'Nama Track', id: 'name', value: track?.name}], async formEl => {
+                    const { error } = isEdit
+                        ? await supabaseClient.from('tracks').update({name: formEl.name.value}).eq('id', track.id)
+                        : await supabaseClient.from('tracks').insert({name: formEl.name.value});
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
                 });
-                showModal('Tambah Track Baru', form);
+                showModal(isEdit ? 'Edit Track' : 'Tambah Track Baru', form);
             }
-            if (target.matches('.edit-track-btn')) {
-                const track = programCache.find(t => t.id == target.dataset.id);
-                const form = createForm([{label: 'Nama Track', id: 'name', value: track.name}], async formEl => {
-                    await supabaseClient.from('tracks').update({name: formEl.name.value}).eq('id', track.id);
-                    hideModal(); loadAllData();
-                });
-                showModal('Edit Track', form);
-            }
-            if (target.matches('.add-topic-btn')) {
+            if (target.matches('.add-topic-btn') || target.matches('.edit-topic-btn')) {
+                const isEdit = target.matches('.edit-topic-btn');
                 const trackId = target.dataset.trackId;
-                const form = createForm([{label: 'Nama Topik', id: 'name'}], async formEl => {
-                    await supabaseClient.from('topics').insert({name: formEl.name.value, track_id: trackId});
-                    hideModal(); loadAllData();
+                const topic = isEdit ? programCache.flatMap(t => t.topics).find(t => t.id == target.dataset.id) : null;
+                const form = createForm([{label: 'Nama Topik', id: 'name', value: topic?.name}], async formEl => {
+                    const { error } = isEdit
+                        ? await supabaseClient.from('topics').update({name: formEl.name.value}).eq('id', topic.id)
+                        : await supabaseClient.from('topics').insert({name: formEl.name.value, track_id: trackId});
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
                 });
-                showModal('Tambah Topik Baru', form);
+                showModal(isEdit ? 'Edit Topik' : 'Tambah Topik Baru', form);
             }
-            if (target.matches('.add-paper-btn')) {
+             if (target.matches('.add-paper-btn') || target.matches('.edit-paper-btn')) {
+                const isEdit = target.matches('.edit-paper-btn');
                 const topicId = target.dataset.topicId;
-                const speakerOptions = speakersCache.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                const paper = isEdit ? programCache.flatMap(t => t.topics).flatMap(t => t.papers).find(p => p.id == target.dataset.id) : null;
+                const speakerOptions = speakersCache.map(s => `<option value="${s.id}" ${s.id == paper?.speaker_id ? 'selected' : ''}>${s.name}</option>`).join('');
                 const form = createForm([
-                    {label: 'Judul Paper', id: 'title'},
-                    {label: 'Abstrak', id: 'abstract', type: 'textarea'},
-                    {label: 'Ruangan', id: 'room'},
+                    {label: 'Judul Paper', id: 'title', value: paper?.title},
+                    {label: 'Abstrak', id: 'abstract', type: 'textarea', value: paper?.abstract},
+                    {label: 'Ruangan', id: 'room', value: paper?.room},
                     {label: 'Pembicara', id: 'speaker_id', type: 'select', options: `<option value="">Pilih Pembicara</option>${speakerOptions}`},
-                    {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local'},
-                    {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local'},
+                    {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: paper?.start_time?.substring(0,16)},
+                    {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: paper?.end_time?.substring(0,16)},
                 ], async formEl => {
-                    await supabaseClient.from('papers').insert({
+                    const payload = {
                         topic_id: topicId,
-                        title: formEl.title.value,
-                        abstract: formEl.abstract.value,
-                        room: formEl.room.value,
+                        title: formEl.title.value, abstract: formEl.abstract.value, room: formEl.room.value,
                         speaker_id: formEl.speaker_id.value || null,
-                        start_time: formEl.start_time.value || null,
-                        end_time: formEl.end_time.value || null,
-                    });
-                    hideModal(); loadAllData();
+                        start_time: formEl.start_time.value || null, end_time: formEl.end_time.value || null,
+                    };
+                    const { error } = isEdit
+                        ? await supabaseClient.from('papers').update(payload).eq('id', paper.id)
+                        : await supabaseClient.from('papers').insert(payload);
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
                 });
-                showModal('Tambah Paper Baru', form);
+                showModal(isEdit ? 'Edit Paper' : 'Tambah Paper Baru', form);
             }
 
             // --- Speaker Management ---
-            if (target.id === 'add-speaker-button') {
-                const form = createForm([{label: 'Nama', id: 'name'}, {label: 'URL Avatar', id: 'avatar_url'}], async formEl => {
-                    await supabaseClient.from('speakers').insert({name: formEl.name.value, avatar_url: formEl.avatar_url.value});
-                    hideModal(); loadAllData();
+            if (target.id === 'add-speaker-button' || target.matches('.edit-speaker-btn')) {
+                const isEdit = target.matches('.edit-speaker-btn');
+                const speaker = isEdit ? speakersCache.find(s => s.id == target.dataset.id) : null;
+                const form = createForm([{label: 'Nama', id: 'name', value: speaker?.name}, {label: 'URL Avatar', id: 'avatar_url', value: speaker?.avatar_url}], async formEl => {
+                    const payload = {name: formEl.name.value, avatar_url: formEl.avatar_url.value};
+                    const { error } = isEdit
+                        ? await supabaseClient.from('speakers').update(payload).eq('id', speaker.id)
+                        : await supabaseClient.from('speakers').insert(payload);
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
                 });
-                showModal('Tambah Pembicara', form);
-            }
-            if (target.matches('.edit-speaker-btn')) {
-                const speaker = speakersCache.find(s => s.id == target.dataset.id);
-                const form = createForm([{label: 'Nama', id: 'name', value: speaker.name}, {label: 'URL Avatar', id: 'avatar_url', value: speaker.avatar_url}], async formEl => {
-                    await supabaseClient.from('speakers').update({name: formEl.name.value, avatar_url: formEl.avatar_url.value}).eq('id', speaker.id);
-                    hideModal(); loadAllData();
-                });
-                showModal('Edit Pembicara', form);
+                showModal(isEdit ? 'Edit Pembicara' : 'Tambah Pembicara', form);
             }
             if (target.matches('.delete-speaker-btn')) {
-                if (confirm(`Anda yakin ingin menghapus pembicara "${target.dataset.name}"?`)) {
-                    await supabaseClient.from('speakers').delete().eq('id', target.dataset.id);
-                    loadAllData();
+                if (confirm(`Hapus pembicara "${target.dataset.name}"?`)) {
+                    await supabaseClient.from('speakers').delete().eq('id', target.dataset.id); loadAllData();
+                }
+            }
+
+            // --- Schedule Management ---
+            if (target.id === 'add-session-button' || target.matches('.edit-session-btn')) {
+                const isEdit = target.matches('.edit-session-btn');
+                const session = isEdit ? scheduleCache.find(s => s.id == target.dataset.id) : null;
+                const form = createForm([
+                    {label: 'Judul Sesi', id: 'title', value: session?.title},
+                    {label: 'Keterangan/Pembicara', id: 'speaker', value: session?.speaker},
+                    {label: 'Deskripsi', id: 'description', type: 'textarea', value: session?.description},
+                    {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: session?.start_time?.substring(0,16)},
+                    {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: session?.end_time?.substring(0,16)},
+                ], async formEl => {
+                     const payload = {
+                        title: formEl.title.value, speaker: formEl.speaker.value, description: formEl.description.value,
+                        start_time: formEl.start_time.value || null, end_time: formEl.end_time.value || null,
+                    };
+                    const { error } = isEdit
+                        ? await supabaseClient.from('sessions').update(payload).eq('id', session.id)
+                        : await supabaseClient.from('sessions').insert(payload);
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
+                });
+                showModal(isEdit ? 'Edit Sesi Umum' : 'Tambah Sesi Umum', form);
+            }
+             if (target.matches('.delete-session-btn')) {
+                if (confirm(`Hapus sesi "${target.dataset.name}"?`)) {
+                    await supabaseClient.from('sessions').delete().eq('id', target.dataset.id); loadAllData();
                 }
             }
         });
 
-        // --- Inisialisasi Aplikasi ---
-        init();
+        // --- CSV Import Listeners ---
+        document.getElementById('speaker-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'speakers'));
+        document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions'));
+        document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0]));
+
+        async function handleCsvImport(file, tableName) {
+            if (!file) return;
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true,
+                complete: async (results) => {
+                    if (results.errors.length) return alert('Gagal mem-parsing CSV.');
+                    const { error } = await supabaseClient.from(tableName).insert(results.data);
+                    if (error) alert('Gagal impor: ' + error.message);
+                    else { alert('Impor berhasil!'); loadAllData(); }
+                }
+            });
+        }
+        
+        async function handleProgramCsvImport(file) {
+            if (!file) return;
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true,
+                complete: async (results) => {
+                    if (results.errors.length) return alert('Gagal mem-parsing CSV.');
+                    
+                    for (const row of results.data) {
+                        try {
+                            // Find or create Track
+                            let { data: track } = await supabaseClient.from('tracks').select('id').eq('name', row.track_name).single();
+                            if (!track) {
+                                const { data: newTrack } = await supabaseClient.from('tracks').insert({name: row.track_name}).select().single();
+                                track = newTrack;
+                            }
+                            
+                            // Find or create Topic
+                            let { data: topic } = await supabaseClient.from('topics').select('id').eq('name', row.topic_name).eq('track_id', track.id).single();
+                            if (!topic) {
+                                const { data: newTopic } = await supabaseClient.from('topics').insert({name: row.topic_name, track_id: track.id}).select().single();
+                                topic = newTopic;
+                            }
+                            
+                            // Find Speaker ID
+                            let speakerId = null;
+                            if (row.speaker_name) {
+                                const { data: speaker } = await supabaseClient.from('speakers').select('id').eq('name', row.speaker_name).single();
+                                if (speaker) speakerId = speaker.id;
+                            }
+                            
+                            // Insert Paper
+                            await supabaseClient.from('papers').insert({
+                                topic_id: topic.id,
+                                title: row.paper_title,
+                                abstract: row.paper_abstract,
+                                room: row.room,
+                                speaker_id: speakerId,
+                                start_time: row.start_time || null,
+                                end_time: row.end_time || null,
+                            });
+                        } catch(e) {
+                            console.error('Gagal memproses baris:', row, e);
+                        }
+                    }
+                    alert('Impor program selesai!');
+                    loadAllData();
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
