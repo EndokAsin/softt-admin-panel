@@ -203,57 +203,7 @@
         }
 
         // --- Render Functions ---
-        function renderProgram() { /* ... implementasi lengkap di bawah ... */ }
-        function renderSpeakers() { /* ... implementasi lengkap di bawah ... */ }
-        function renderSchedule() { /* ... implementasi lengkap di bawah ... */ }
-
-        // --- Modal & Form Handling ---
-        function showModal(title, content) {
-            modalTitle.textContent = title;
-            modalBody.innerHTML = content;
-            modal.classList.add('active');
-        }
-
-        function hideModal() {
-            modal.classList.remove('active');
-            modalBody.innerHTML = '';
-        }
-
-        // --- Event Listeners ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loginError.textContent = '';
-            const email = loginForm.email.value;
-            const password = loginForm.password.value;
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) loginError.textContent = 'Login gagal: ' + error.message;
-            else init();
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            await supabaseClient.auth.signOut();
-            location.reload();
-        });
-
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('data-target');
-                dashboardContents.forEach(content => content.classList.add('hidden'));
-                document.getElementById(targetId).classList.remove('hidden');
-                navLinks.forEach(nav => nav.classList.remove('bg-gray-700'));
-                link.classList.add('bg-gray-700');
-            });
-        });
-
-        modalClose.addEventListener('click', hideModal);
-        
-        // --- Inisialisasi Aplikasi ---
-        init();
-
-        // --- Implementasi Detail Render dan Form ---
-        
-        // Render Speakers
+        // FIX: Removed duplicate function declarations. Implementations are now defined once.
         function renderSpeakers() {
             const container = document.getElementById('speakers-list');
             if (speakersCache.length === 0) {
@@ -274,7 +224,6 @@
             `).join('');
         }
 
-        // Render Schedule
         function renderSchedule() {
             const container = document.getElementById('schedule-list');
             if (scheduleCache.length === 0) {
@@ -295,7 +244,6 @@
             `).join('');
         }
 
-        // Render Program (lebih detail)
         function renderProgram() {
             const container = document.getElementById('program-list');
             if (programCache.length === 0) {
@@ -346,14 +294,15 @@
         function createForm(fields, onSubmit) {
             const form = document.createElement('form');
             form.className = 'space-y-4';
+            form.id = 'modal-form';
             form.innerHTML = fields.map(f => `
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">${f.label}</label>
+                    <label for="${f.id}" class="block text-sm font-medium text-gray-700">${f.label}</label>
                     ${f.type === 'textarea' 
-                        ? `<textarea id="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
+                        ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
                         : f.type === 'select'
-                        ? `<select id="${f.id}" class="input-field">${f.options}</select>`
-                        : `<input type="${f.type || 'text'}" id="${f.id}" value="${f.value || ''}" class="input-field">`
+                        ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
+                        : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
                     }
                 </div>
             `).join('');
@@ -364,33 +313,103 @@
             form.appendChild(submitButton);
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
-                onSubmit(e.target);
+                onSubmit(form);
             });
             return form;
         }
         
+        // --- Modal & Form Handling ---
+        function showModal(title, formElement) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = ''; // Clear previous content
+            modalBody.appendChild(formElement);
+            modal.classList.add('active');
+        }
+
+        function hideModal() {
+            modal.classList.remove('active');
+            modalBody.innerHTML = '';
+        }
+
         // --- Event Delegation ---
         document.body.addEventListener('click', async e => {
             const target = e.target;
-            // Program
-            if (target.id === 'add-track-button') showModal('Tambah Track Baru', createForm([{label: 'Nama Track', id: 'name'}], async form => {
-                await supabaseClient.from('tracks').insert({name: form.name.value});
-                hideModal(); loadAllData();
-            }).outerHTML);
-            if (target.classList.contains('edit-track-btn')) { /* ... */ }
-            if (target.classList.contains('delete-track-btn')) { /* ... */ }
-            if (target.classList.contains('add-topic-btn')) { /* ... */ }
-            // Speakers
-            if (target.id === 'add-speaker-button') showModal('Tambah Pembicara', createForm([{label: 'Nama', id: 'name'}, {label: 'URL Avatar', id: 'avatar_url'}], async form => {
-                await supabaseClient.from('speakers').insert({name: form.name.value, avatar_url: form.avatar_url.value});
-                hideModal(); loadAllData();
-            }).outerHTML);
-            if (target.classList.contains('edit-speaker-btn')) { /* ... */ }
-            // ... dan seterusnya untuk semua tombol edit dan hapus
+            
+            // --- Program Management ---
+            if (target.id === 'add-track-button') {
+                const form = createForm([{label: 'Nama Track', id: 'name'}], async formEl => {
+                    await supabaseClient.from('tracks').insert({name: formEl.name.value});
+                    hideModal(); loadAllData();
+                });
+                showModal('Tambah Track Baru', form);
+            }
+            if (target.matches('.edit-track-btn')) {
+                const track = programCache.find(t => t.id == target.dataset.id);
+                const form = createForm([{label: 'Nama Track', id: 'name', value: track.name}], async formEl => {
+                    await supabaseClient.from('tracks').update({name: formEl.name.value}).eq('id', track.id);
+                    hideModal(); loadAllData();
+                });
+                showModal('Edit Track', form);
+            }
+            if (target.matches('.add-topic-btn')) {
+                const trackId = target.dataset.trackId;
+                const form = createForm([{label: 'Nama Topik', id: 'name'}], async formEl => {
+                    await supabaseClient.from('topics').insert({name: formEl.name.value, track_id: trackId});
+                    hideModal(); loadAllData();
+                });
+                showModal('Tambah Topik Baru', form);
+            }
+            if (target.matches('.add-paper-btn')) {
+                const topicId = target.dataset.topicId;
+                const speakerOptions = speakersCache.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                const form = createForm([
+                    {label: 'Judul Paper', id: 'title'},
+                    {label: 'Abstrak', id: 'abstract', type: 'textarea'},
+                    {label: 'Ruangan', id: 'room'},
+                    {label: 'Pembicara', id: 'speaker_id', type: 'select', options: `<option value="">Pilih Pembicara</option>${speakerOptions}`},
+                    {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local'},
+                    {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local'},
+                ], async formEl => {
+                    await supabaseClient.from('papers').insert({
+                        topic_id: topicId,
+                        title: formEl.title.value,
+                        abstract: formEl.abstract.value,
+                        room: formEl.room.value,
+                        speaker_id: formEl.speaker_id.value || null,
+                        start_time: formEl.start_time.value || null,
+                        end_time: formEl.end_time.value || null,
+                    });
+                    hideModal(); loadAllData();
+                });
+                showModal('Tambah Paper Baru', form);
+            }
+
+            // --- Speaker Management ---
+            if (target.id === 'add-speaker-button') {
+                const form = createForm([{label: 'Nama', id: 'name'}, {label: 'URL Avatar', id: 'avatar_url'}], async formEl => {
+                    await supabaseClient.from('speakers').insert({name: formEl.name.value, avatar_url: formEl.avatar_url.value});
+                    hideModal(); loadAllData();
+                });
+                showModal('Tambah Pembicara', form);
+            }
+            if (target.matches('.edit-speaker-btn')) {
+                const speaker = speakersCache.find(s => s.id == target.dataset.id);
+                const form = createForm([{label: 'Nama', id: 'name', value: speaker.name}, {label: 'URL Avatar', id: 'avatar_url', value: speaker.avatar_url}], async formEl => {
+                    await supabaseClient.from('speakers').update({name: formEl.name.value, avatar_url: formEl.avatar_url.value}).eq('id', speaker.id);
+                    hideModal(); loadAllData();
+                });
+                showModal('Edit Pembicara', form);
+            }
+            if (target.matches('.delete-speaker-btn')) {
+                if (confirm(`Anda yakin ingin menghapus pembicara "${target.dataset.name}"?`)) {
+                    await supabaseClient.from('speakers').delete().eq('id', target.dataset.id);
+                    loadAllData();
+                }
+            }
         });
 
+        // --- Inisialisasi Aplikasi ---
+        init();
     </script>
 </body>
 </html>
