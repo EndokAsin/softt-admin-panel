@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin SOFTT</title>
+    <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Supabase Client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Memuat PapaParse untuk membaca file CSV -->
     <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
     <style>
+        /* Menambahkan sedikit style kustom untuk konsistensi tema */
         :root {
             --brand-red: #D32F2F;
             --brand-red-dark: #B71C1C;
@@ -19,50 +23,53 @@
         .ring-brand-red:focus { ring-color: var(--brand-red); }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans antialiased">
 
-    <!-- Kontainer Utama -->
-    <div id="app" class="min-h-screen flex flex-col">
+    <!-- Kontainer Utama Aplikasi -->
+    <div id="app-container">
 
         <!-- Halaman Login (Tampil secara default) -->
-        <div id="login-page" class="flex-grow flex items-center justify-center p-4">
-            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-                <div class="text-center mb-8">
+        <div id="login-page" class="min-h-screen flex items-center justify-center bg-gray-200 p-4">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+                <div class="text-center">
                     <h1 class="text-3xl font-bold text-brand-red">Panel Admin SOFTT</h1>
                     <p class="text-gray-500 mt-2">Silakan login untuk melanjutkan</p>
                 </div>
                 <form id="login-form">
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" id="email" name="email" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-brand-red focus:border-brand-red" placeholder="admin@softt.com">
+                            <label for="email" class="sr-only">Email</label>
+                            <input type="email" id="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="admin@softt.com">
                         </div>
                         <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="password" name="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-brand-red focus:border-brand-red" placeholder="••••••••">
+                            <label for="password" class="sr-only">Password</label>
+                            <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="••••••••">
                         </div>
-                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-red hover:bg-brand-red-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-red transition-colors">
-                            Login
+                        <button type="submit" id="login-button" class="w-full py-3 px-4 rounded-lg font-medium text-white bg-brand-red hover:bg-brand-red-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-red transition-all duration-300">
+                            <span id="login-button-text">Login</span>
+                            <span id="login-spinner" class="hidden">Memproses...</span>
                         </button>
                     </div>
                 </form>
-                <p id="login-error" class="mt-4 text-center text-red-600 text-sm"></p>
+                <p id="login-error" class="mt-4 text-center text-red-600 text-sm font-medium"></p>
             </div>
         </div>
 
         <!-- Dasbor Admin (Tersembunyi secara default) -->
-        <div id="dashboard-page" class="hidden flex-grow">
-            <div class="flex min-h-screen w-full">
+        <div id="dashboard-page" class="hidden min-h-screen">
+            <div class="flex w-full">
                 <!-- Sidebar Navigasi -->
-                <aside class="w-64 bg-gray-800 text-white flex flex-col">
+                <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
                     <div class="p-4 border-b border-gray-700">
                         <h2 class="text-xl font-bold">Admin SOFTT</h2>
-                        <p id="admin-email" class="text-xs text-gray-400"></p>
+                        <p id="admin-email" class="text-xs text-gray-400 truncate"></p>
                     </div>
                     <nav class="flex-grow p-4 space-y-2">
-                        <a href="#" data-target="dashboard-home" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>Beranda</a>
-                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Pembicara</a>
-                        <!-- Tambahkan link navigasi lain di sini -->
+                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Pembicara
+                        </a>
+                        <!-- Tambahkan link navigasi lain di sini jika diperlukan -->
                     </nav>
                     <div class="p-4 border-t border-gray-700">
                         <button id="logout-button" class="w-full flex items-center justify-center px-3 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors">
@@ -73,16 +80,10 @@
                 </aside>
 
                 <!-- Konten Utama Dasbor -->
-                <main class="flex-grow p-8 bg-gray-50">
-                    <div id="dashboard-home" class="dashboard-content">
-                        <h1 class="text-3xl font-bold text-gray-800">Selamat Datang, Admin!</h1>
-                        <p class="mt-2 text-gray-600">Pilih menu di sebelah kiri untuk mulai mengelola data konferensi.</p>
-                    </div>
-
-                    <div id="manage-speakers" class="dashboard-content hidden">
+                <main class="flex-grow p-8 bg-gray-50 overflow-y-auto">
+                    <div id="manage-speakers" class="dashboard-content">
                         <h1 class="text-3xl font-bold text-gray-800">Kelola Pembicara</h1>
                         
-                        <!-- Bagian Impor CSV -->
                         <div class="mt-6 bg-white p-6 rounded-lg shadow">
                             <h2 class="text-xl font-semibold text-gray-700">Impor dari File CSV</h2>
                             <p class="text-sm text-gray-500 mt-1">Unggah file CSV dengan kolom 'name' dan 'avatar_url' untuk menambahkan pembicara secara massal.</p>
@@ -92,12 +93,10 @@
                             </div>
                         </div>
 
-                        <!-- Daftar Pembicara -->
                         <div class="mt-8">
                             <h2 class="text-xl font-semibold text-gray-700">Daftar Pembicara Saat Ini</h2>
                             <div id="speakers-list" class="mt-4 space-y-3">
-                                <!-- Data pembicara akan dimuat di sini oleh JavaScript -->
-                                <p>Memuat data pembicara...</p>
+                                <!-- Data akan dimuat di sini -->
                             </div>
                         </div>
                     </div>
@@ -107,54 +106,61 @@
     </div>
 
     <script type="module">
-        // --- Inisialisasi Supabase ---
+        // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // FIX: Changed variable name from 'supabase' to 'supabaseClient' to avoid conflict.
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- Elemen DOM ---
         const loginPage = document.getElementById('login-page');
         const dashboardPage = document.getElementById('dashboard-page');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
+        const loginButton = document.getElementById('login-button');
+        const loginButtonText = document.getElementById('login-button-text');
+        const loginSpinner = document.getElementById('login-spinner');
         const logoutButton = document.getElementById('logout-button');
         const adminEmail = document.getElementById('admin-email');
-        const navLinks = document.querySelectorAll('.nav-link');
-        const dashboardContents = document.querySelectorAll('.dashboard-content');
         const speakersList = document.getElementById('speakers-list');
         const csvFileInput = document.getElementById('csv-file-input');
         const importStatus = document.getElementById('import-status');
 
-        // --- Fungsi ---
+        // --- Fungsi Utama ---
 
-        // Fungsi untuk memeriksa peran pengguna
-        async function checkUserRole(userId) {
-            const { data, error } = await supabase
+        // Fungsi untuk memeriksa peran pengguna di tabel 'profiles'
+        async function getUserRole(userId) {
+            // FIX: Using supabaseClient
+            const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('role')
                 .eq('id', userId)
                 .single();
+
             if (error) {
-                console.error("Error checking role:", error);
+                console.error("Gagal memeriksa peran pengguna:", error);
                 return null;
             }
             return data ? data.role : null;
         }
 
-        // Fungsi untuk menampilkan dasbor
+        // Fungsi untuk menampilkan dasbor jika pengguna adalah admin
         async function showDashboard() {
-            const { data: { session } } = await supabase.auth.getSession();
+            // FIX: Using supabaseClient
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
             if (session) {
-                const userRole = await checkUserRole(session.user.id);
+                const userRole = await getUserRole(session.user.id);
                 if (userRole === 'admin') {
                     loginPage.classList.add('hidden');
                     dashboardPage.classList.remove('hidden');
                     adminEmail.textContent = session.user.email;
                     await loadSpeakers();
                 } else {
-                    // Jika bukan admin, logout dan tetap di halaman login
-                    await supabase.auth.signOut();
-                    alert('Akses ditolak. Hanya admin yang dapat login.');
+                    // Jika bukan admin, logout dan tampilkan pesan
+                    await supabaseClient.auth.signOut();
+                    loginError.textContent = 'Akses ditolak. Hanya admin yang dapat login.';
                 }
             } else {
                 loginPage.classList.remove('hidden');
@@ -162,13 +168,14 @@
             }
         }
 
-        // Fungsi untuk memuat daftar pembicara
+        // Fungsi untuk memuat dan menampilkan daftar pembicara
         async function loadSpeakers() {
-            speakersList.innerHTML = '<p>Memuat data pembicara...</p>';
-            const { data, error } = await supabase.from('speakers').select('*').order('name');
+            speakersList.innerHTML = '<p>Memuat data...</p>';
+            // FIX: Using supabaseClient
+            const { data, error } = await supabaseClient.from('speakers').select('*').order('name');
+
             if (error) {
-                speakersList.innerHTML = '<p class="text-red-500">Gagal memuat data.</p>';
-                console.error("Error loading speakers:", error);
+                speakersList.innerHTML = '<p class="text-red-500">Gagal memuat data pembicara.</p>';
                 return;
             }
             if (data.length === 0) {
@@ -178,10 +185,9 @@
             speakersList.innerHTML = data.map(speaker => `
                 <div class="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between">
                     <div class="flex items-center">
-                        <img src="${speaker.avatar_url || 'https://placehold.co/40x40'}" alt="${speaker.name}" class="w-10 h-10 rounded-full mr-4 object-cover">
-                        <span class="font-medium">${speaker.name}</span>
+                        <img src="${speaker.avatar_url || 'https://placehold.co/40x40/e0e0e0/757575?text=N/A'}" alt="${speaker.name}" class="w-10 h-10 rounded-full mr-4 object-cover">
+                        <span class="font-medium text-gray-800">${speaker.name}</span>
                     </div>
-                    <!-- Tombol edit/hapus bisa ditambahkan di sini -->
                 </div>
             `).join('');
         }
@@ -192,44 +198,38 @@
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             loginError.textContent = '';
+            loginButton.disabled = true;
+            loginButtonText.classList.add('hidden');
+            loginSpinner.classList.remove('hidden');
+
             const email = loginForm.email.value;
             const password = loginForm.password.value;
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            // FIX: Using supabaseClient
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
             if (error) {
-                loginError.textContent = 'Login gagal: ' + error.message;
+                loginError.textContent = 'Login gagal: Email atau password salah.';
             } else {
                 await showDashboard();
             }
+
+            loginButton.disabled = false;
+            loginButtonText.classList.remove('hidden');
+            loginSpinner.classList.add('hidden');
         });
 
         // Handler untuk tombol logout
         logoutButton.addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            showDashboard();
+            // FIX: Using supabaseClient
+            await supabaseClient.auth.signOut();
+            location.reload(); // Muat ulang halaman untuk kembali ke login
         });
 
-        // Handler untuk navigasi di sidebar
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('data-target');
-
-                // Sembunyikan semua konten
-                dashboardContents.forEach(content => content.classList.add('hidden'));
-                // Tampilkan konten yang ditargetkan
-                document.getElementById(targetId).classList.remove('hidden');
-
-                // Update style link aktif
-                navLinks.forEach(nav => nav.classList.remove('bg-gray-700'));
-                link.classList.add('bg-gray-700');
-            });
-        });
-
-        // Handler untuk impor file CSV (Kode yang Anda pilih)
+        // Handler untuk impor file CSV
         csvFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) {
-                importStatus.textContent = "Tidak ada file yang dipilih.";
+                importStatus.textContent = "";
                 return;
             }
             importStatus.textContent = `Memproses file: ${file.name}...`;
@@ -238,33 +238,23 @@
                 header: true,
                 skipEmptyLines: true,
                 complete: async function(results) {
-                    console.log("Data yang berhasil diparsing:", results.data);
-                    
                     if (results.errors.length > 0) {
-                        importStatus.textContent = 'Error saat parsing CSV. Periksa format file Anda.';
+                        importStatus.textContent = 'Error: Periksa format file CSV Anda.';
                         console.error('CSV Parsing Errors:', results.errors);
                         return;
                     }
 
                     try {
-                        const { data, error } = await supabase
-                            .from('speakers')
-                            .insert(results.data);
-
+                        // FIX: Using supabaseClient
+                        const { error } = await supabaseClient.from('speakers').insert(results.data);
                         if (error) {
-                            console.error("Error saat impor ke Supabase:", error);
-                            importStatus.textContent = `Gagal mengimpor data: ${error.message}`;
-                            alert(`Gagal mengimpor data: ${error.message}`);
+                            importStatus.textContent = `Gagal mengimpor: ${error.message}`;
                         } else {
-                            console.log("Data berhasil diimpor:", data);
                             importStatus.textContent = `${results.data.length} pembicara berhasil diimpor!`;
-                            alert("Impor data berhasil!");
-                            await loadSpeakers(); // Muat ulang daftar pembicara
+                            await loadSpeakers();
                         }
                     } catch (e) {
-                        console.error("Terjadi kesalahan tak terduga:", e);
                         importStatus.textContent = "Terjadi kesalahan tak terduga saat impor.";
-                        alert("Terjadi kesalahan tak terduga saat mencoba mengimpor.");
                     }
                 }
             });
