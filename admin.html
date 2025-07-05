@@ -60,10 +60,20 @@
                         <h2 class="text-xl font-bold">Admin SOFTT</h2>
                         <p id="admin-email" class="text-xs text-gray-400 truncate"></p>
                     </div>
-                    <nav class="flex-grow p-4 space-y-2">
-                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Program Konferensi</a>
-                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
-                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
+                    <!-- FIX: Added ID to nav container for event delegation -->
+                    <nav id="sidebar-nav" class="flex-grow p-4 space-y-2">
+                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Program
+                        </a>
+                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Jadwal Umum
+                        </a>
+                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            Pembicara
+                        </a>
                     </nav>
                     <div class="p-4 border-t border-gray-700">
                         <button id="logout-button" class="w-full btn bg-red-600 hover:bg-red-700">Logout</button>
@@ -150,7 +160,7 @@
         const loginError = document.getElementById('login-error');
         const logoutButton = document.getElementById('logout-button');
         const adminEmail = document.getElementById('admin-email');
-        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebarNav = document.getElementById('sidebar-nav'); // FIX: Get nav container
         const dashboardContents = document.querySelectorAll('.dashboard-content');
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modal-title');
@@ -203,7 +213,6 @@
         }
 
         // --- Render Functions ---
-        // FIX: Removed duplicate function declarations. Implementations are now defined once.
         function renderSpeakers() {
             const container = document.getElementById('speakers-list');
             if (speakersCache.length === 0) {
@@ -321,7 +330,7 @@
         // --- Modal & Form Handling ---
         function showModal(title, formElement) {
             modalTitle.textContent = title;
-            modalBody.innerHTML = ''; // Clear previous content
+            modalBody.innerHTML = '';
             modalBody.appendChild(formElement);
             modal.classList.add('active');
         }
@@ -331,7 +340,39 @@
             modalBody.innerHTML = '';
         }
 
-        // --- Event Delegation ---
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) loginError.textContent = 'Login gagal: ' + error.message;
+            else init();
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        });
+
+        // FIX: Replaced individual listeners with event delegation on the nav container
+        sidebarNav.addEventListener('click', (e) => {
+            const link = e.target.closest('.nav-link');
+            if (link) {
+                e.preventDefault();
+                const targetId = link.dataset.target;
+                
+                dashboardContents.forEach(content => content.classList.add('hidden'));
+                document.getElementById(targetId).classList.remove('hidden');
+                
+                document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('bg-gray-700'));
+                link.classList.add('bg-gray-700');
+            }
+        });
+
+        modalClose.addEventListener('click', hideModal);
+        
         document.body.addEventListener('click', async e => {
             const target = e.target;
             
