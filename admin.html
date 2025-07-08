@@ -417,8 +417,20 @@
             if (target.id === 'add-speaker-button' || target.matches('.edit-speaker-btn')) {
                 const isEdit = target.matches('.edit-speaker-btn');
                 const speaker = isEdit ? speakersCache.find(s => s.id == target.dataset.id) : null;
-                const form = createForm([{label: 'Nama', id: 'name', value: speaker?.name}, {label: 'URL Avatar', id: 'avatar_url', value: speaker?.avatar_url}], async formEl => {
-                    const payload = {name: formEl.name.value, avatar_url: formEl.avatar_url.value};
+                const form = createForm([{label: 'Nama', id: 'name', value: speaker?.name}, {label: 'Foto Profil (opsional, ganti jika perlu)', id: 'avatar_file', type: 'file'}], async formEl => {
+                    const name = formEl.name.value;
+                    const file = formEl.avatar_file.files[0];
+                    let avatar_url = speaker?.avatar_url; 
+
+                    if (file) {
+                        const filePath = `public/${Date.now()}-${file.name}`;
+                        const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file);
+                        if (uploadError) { alert('Gagal mengunggah gambar: ' + uploadError.message); return; }
+                        const { data } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+                        avatar_url = data.publicUrl;
+                    }
+
+                    const payload = { name, avatar_url };
                     const { error } = isEdit
                         ? await supabaseClient.from('speakers').update(payload).eq('id', speaker.id)
                         : await supabaseClient.from('speakers').insert(payload);
@@ -462,7 +474,6 @@
         });
 
         // --- CSV Import Listeners ---
-        // FIX: Added listeners for all CSV inputs
         document.getElementById('speaker-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'speakers', document.getElementById('speaker-import-status')));
         document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
         document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
@@ -542,7 +553,9 @@
                 }
             });
         }
-
+        
+        // --- Inisialisasi Aplikasi ---
+        init();
     </script>
 </body>
 </html>
