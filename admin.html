@@ -64,6 +64,7 @@
                         <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Program Konferensi</a>
                         <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
                         <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
+                        <a href="#" data-target="manage-team" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Tim Panitia</a>
                     </nav>
                     <div class="p-4 border-t border-gray-700">
                         <button id="logout-button" class="w-full btn bg-red-600 hover:bg-red-700">Logout</button>
@@ -110,7 +111,7 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Pembicara dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom: `name`, `avatar_url`.</p>
+                            <p class="text-sm text-gray-500 mt-1">Kolom: `name`, `avatar_url` (opsional).</p>
                             <input type="file" id="speaker-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
                             <p id="speaker-import-status" class="mt-2 text-sm font-medium"></p>
                         </div>
@@ -118,6 +119,21 @@
                             <h2 class="text-xl font-semibold text-gray-700">Daftar Pembicara</h2>
                             <div id="speakers-list" class="mt-4 space-y-3"></div>
                         </div>
+                    </div>
+
+                    <!-- Konten Tim Panitia -->
+                    <div id="manage-team" class="dashboard-content hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-3xl font-bold text-gray-800">Kelola Tim Panitia</h1>
+                            <button id="add-member-button" class="btn btn-primary">Tambah Anggota</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-xl font-semibold text-gray-700">Impor Anggota dari CSV</h2>
+                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `name`, `role`. Kolom opsional: `affiliation`. Nilai `role` harus: organizing, technical, atau reviewer.</p>
+                            <input type="file" id="team-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
+                            <p id="team-import-status" class="mt-2 text-sm font-medium"></p>
+                        </div>
+                        <div id="team-list" class="space-y-6"></div>
                     </div>
                 </main>
             </div>
@@ -145,6 +161,7 @@
         let speakersCache = [];
         let programCache = [];
         let scheduleCache = [];
+        let teamCache = [];
 
         // --- Elemen DOM ---
         const loginPage = document.getElementById('login-page');
@@ -190,19 +207,22 @@
         }
 
         async function loadAllData() {
-            const [programRes, speakersRes, scheduleRes] = await Promise.all([
+            const [programRes, speakersRes, scheduleRes, teamRes] = await Promise.all([
                 supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(name)))`).order('name'),
                 supabaseClient.from('speakers').select('*').order('name'),
-                supabaseClient.from('sessions').select('*').order('start_time')
+                supabaseClient.from('sessions').select('*').order('start_time'),
+                supabaseClient.from('committees').select('*').order('name')
             ]);
 
             programCache = programRes.data || [];
             speakersCache = speakersRes.data || [];
             scheduleCache = scheduleRes.data || [];
+            teamCache = teamRes.data || [];
 
             renderProgram();
             renderSpeakers();
             renderSchedule();
+            renderTeam();
         }
 
         // --- Render Functions ---
@@ -278,6 +298,40 @@
                     </div>
                 </div>
             `).join('') : '<p>Belum ada program yang dibuat.</p>';
+        }
+
+        function renderTeam() {
+            const container = document.getElementById('team-list');
+            const roles = {
+                organizing: 'Organizing Committee',
+                technical: 'Technical Program Committee',
+                reviewer: 'Reviewers'
+            };
+            
+            let html = '';
+            for (const role in roles) {
+                const members = teamCache.filter(m => m.role === role);
+                html += `
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">${roles[role]}</h3>
+                        <div class="space-y-2">
+                            ${members.length > 0 ? members.map(member => `
+                                <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium">${member.name}</p>
+                                        <p class="text-sm text-gray-500">${member.affiliation || ''}</p>
+                                    </div>
+                                    <div>
+                                        <button class="edit-member-btn btn-edit" data-id="${member.id}">Edit</button>
+                                        <button class="delete-member-btn btn-delete" data-id="${member.id}" data-name="${member.name}">Hapus</button>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-sm text-gray-400">Belum ada anggota.</p>'}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
         }
         
         function createForm(fields, onSubmit) {
@@ -471,12 +525,44 @@
                     await supabaseClient.from('sessions').delete().eq('id', target.dataset.id); loadAllData();
                 }
             }
+
+            // --- Team Management ---
+            if (target.id === 'add-member-button' || target.matches('.edit-member-btn')) {
+                const isEdit = target.matches('.edit-member-btn');
+                const member = isEdit ? teamCache.find(m => m.id == target.dataset.id) : null;
+                const roleOptions = ['organizing', 'technical', 'reviewer']
+                    .map(r => `<option value="${r}" ${r === member?.role ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('');
+
+                const form = createForm([
+                    {label: 'Nama Lengkap', id: 'name', value: member?.name},
+                    {label: 'Afiliasi', id: 'affiliation', value: member?.affiliation},
+                    {label: 'Peran', id: 'role', type: 'select', options: roleOptions}
+                ], async formEl => {
+                    const payload = {
+                        name: formEl.name.value,
+                        affiliation: formEl.affiliation.value,
+                        role: formEl.role.value
+                    };
+                    const { error } = isEdit
+                        ? await supabaseClient.from('committees').update(payload).eq('id', member.id)
+                        : await supabaseClient.from('committees').insert(payload);
+                    if (error) alert(error.message); else { hideModal(); loadAllData(); }
+                });
+                showModal(isEdit ? 'Edit Anggota Tim' : 'Tambah Anggota Tim', form);
+            }
+            if (target.matches('.delete-member-btn')) {
+                if (confirm(`Hapus anggota "${target.dataset.name}"?`)) {
+                    await supabaseClient.from('committees').delete().eq('id', target.dataset.id);
+                    loadAllData();
+                }
+            }
         });
 
         // --- CSV Import Listeners ---
         document.getElementById('speaker-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'speakers', document.getElementById('speaker-import-status')));
         document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
         document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
+        document.getElementById('team-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'committees', document.getElementById('team-import-status')));
 
         async function handleCsvImport(file, tableName, statusElement) {
             if (!file) return;
