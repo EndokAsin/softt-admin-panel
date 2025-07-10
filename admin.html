@@ -129,7 +129,7 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Anggota dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `name`, `role`. Kolom opsional: `affiliation`. Nilai `role` harus: organizing, technical, atau reviewer.</p>
+                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `name`, `role`. Kolom opsional: `affiliation`, `position`. Nilai `role` harus: organizing, technical, atau reviewer.</p>
                             <input type="file" id="team-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
                             <p id="team-import-status" class="mt-2 text-sm font-medium"></p>
                         </div>
@@ -319,7 +319,7 @@
                                 <div class="bg-white p-3 rounded-lg shadow-sm flex items-center justify-between">
                                     <div>
                                         <p class="font-medium">${member.name}</p>
-                                        <p class="text-sm text-gray-500">${member.affiliation || ''}</p>
+                                        <p class="text-sm text-gray-500">${member.position || ''} - ${member.affiliation || ''}</p>
                                     </div>
                                     <div>
                                         <button class="edit-member-btn btn-edit" data-id="${member.id}">Edit</button>
@@ -535,11 +535,13 @@
 
                 const form = createForm([
                     {label: 'Nama Lengkap', id: 'name', value: member?.name},
+                    {label: 'Jabatan', id: 'position', value: member?.position}, // REVISED
                     {label: 'Afiliasi', id: 'affiliation', value: member?.affiliation},
                     {label: 'Peran', id: 'role', type: 'select', options: roleOptions}
                 ], async formEl => {
                     const payload = {
                         name: formEl.name.value,
+                        position: formEl.position.value, // REVISED
                         affiliation: formEl.affiliation.value,
                         role: formEl.role.value
                     };
