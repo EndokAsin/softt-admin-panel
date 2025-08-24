@@ -630,11 +630,18 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true,
+                header: true, 
+                skipEmptyLines: true,
+                error: function(err) {
+                    console.error("CSV Parsing Error:", err);
+                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
+                    alert(`Gagal mem-parsing CSV: ${err.message}`);
+                },
                 complete: async (results) => {
                     if (results.errors.length) {
-                        statusElement.textContent = 'Gagal mem-parsing CSV. Periksa format.';
-                        return alert('Gagal mem-parsing CSV.');
+                        const errorMsg = results.errors.map(e => e.message).join('\n');
+                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
+                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
                     }
                     
                     const dataToInsert = results.data.map(row => {
@@ -660,9 +667,19 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true,
+                header: true, 
+                skipEmptyLines: true,
+                error: function(err) {
+                    console.error("CSV Parsing Error:", err);
+                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
+                    alert(`Gagal mem-parsing CSV: ${err.message}`);
+                },
                 complete: async (results) => {
-                    if (results.errors.length) return alert('Gagal mem-parsing CSV.');
+                    if (results.errors.length) {
+                         const errorMsg = results.errors.map(e => e.message).join('\n');
+                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
+                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
+                    }
                     
                     let successCount = 0;
                     let errorCount = 0;
