@@ -645,8 +645,9 @@
                     }
                     
                     const dataToInsert = results.data.map(row => {
-                        if (row.start_time) row.start_time = new Date(row.start_time).toISOString();
-                        if (row.end_time) row.end_time = new Date(row.end_time).toISOString();
+                        // **FIX**: Do NOT convert time from CSV. Let Supabase handle the raw string.
+                        // This requires the CSV time to be in a format Supabase understands,
+                        // ideally with a timezone offset like '2025-08-24 20:30:00+07:00'
                         return row;
                     });
 
@@ -710,8 +711,9 @@
                                 abstract: row.paper_abstract,
                                 room: row.room,
                                 speaker_id: speakerId,
-                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null,
-                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null,
+                                // **FIX**: Do NOT convert time from CSV.
+                                start_time: row.start_time || null,
+                                end_time: row.end_time || null,
                             });
                             successCount++;
                         } catch(e) {
@@ -730,4 +732,3 @@
         init();
     </script>
 </body>
-</html>
