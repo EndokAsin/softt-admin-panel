@@ -183,14 +183,18 @@
             const startDate = new Date(startIso);
             const endDate = new Date(endIso);
 
-            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric' };
-            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+            // **FIX**: Set timezone to WITA (UTC+8)
+            const timeZone = 'Asia/Makassar';
+
+            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric', timeZone: timeZone };
+            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timeZone };
 
             const dateString = startDate.toLocaleDateString('id-ID', optionsDate);
             const startTimeString = startDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
             const endTimeString = endDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
 
-            return `${dateString}, ${startTimeString} - ${endTimeString}`;
+            // **FIX**: Add (WITA) text
+            return `${dateString}, ${startTimeString} - ${endTimeString} (WITA)`;
         }
 
         // --- Fungsi Utama ---
