@@ -77,7 +77,10 @@
                     <div id="manage-program" class="dashboard-content">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Program Konferensi</h1>
-                            <button id="add-track-button" class="btn btn-primary">Tambah Track</button>
+                            <div class="flex items-center space-x-2">
+                                <button id="delete-all-program-button" class="btn btn-secondary">Hapus Semua</button>
+                                <button id="add-track-button" class="btn btn-primary">Tambah Track</button>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Paper dari CSV</h2>
@@ -92,7 +95,10 @@
                     <div id="manage-schedule" class="dashboard-content hidden">
                          <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Jadwal Umum</h1>
-                            <button id="add-session-button" class="btn btn-primary">Tambah Sesi</button>
+                            <div class="flex items-center space-x-2">
+                                <button id="delete-all-schedule-button" class="btn btn-secondary">Hapus Semua</button>
+                                <button id="add-session-button" class="btn btn-primary">Tambah Sesi</button>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Sesi dari CSV</h2>
@@ -107,7 +113,10 @@
                     <div id="manage-speakers" class="dashboard-content hidden">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Kelola Pembicara</h1>
-                            <button id="add-speaker-button" class="btn btn-primary">Tambah Pembicara</button>
+                            <div class="flex items-center space-x-2">
+                                <button id="delete-all-speakers-button" class="btn btn-secondary">Hapus Semua</button>
+                                <button id="add-speaker-button" class="btn btn-primary">Tambah Pembicara</button>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Pembicara dari CSV</h2>
@@ -125,7 +134,10 @@
                     <div id="manage-team" class="dashboard-content hidden">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Kelola Tim Panitia</h1>
-                            <button id="add-member-button" class="btn btn-primary">Tambah Anggota</button>
+                            <div class="flex items-center space-x-2">
+                                <button id="delete-all-team-button" class="btn btn-secondary">Hapus Semua</button>
+                                <button id="add-member-button" class="btn btn-primary">Tambah Anggota</button>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Anggota dari CSV</h2>
@@ -154,7 +166,7 @@
     <script type="module">
         // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV-P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- State Aplikasi ---
@@ -464,7 +476,6 @@
                     {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: paper?.start_time?.substring(0,16)},
                     {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: paper?.end_time?.substring(0,16)},
                 ], async formEl => {
-                    // **FIX**: Convert local datetime string to full ISO string (UTC)
                     const startTime = formEl.start_time.value ? new Date(formEl.start_time.value).toISOString() : null;
                     const endTime = formEl.end_time.value ? new Date(formEl.end_time.value).toISOString() : null;
 
@@ -529,7 +540,6 @@
                     {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: session?.start_time?.substring(0,16)},
                     {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: session?.end_time?.substring(0,16)},
                 ], async formEl => {
-                    // **FIX**: Convert local datetime string to full ISO string (UTC)
                     const startTime = formEl.start_time.value ? new Date(formEl.start_time.value).toISOString() : null;
                     const endTime = formEl.end_time.value ? new Date(formEl.end_time.value).toISOString() : null;
 
@@ -582,6 +592,32 @@
                     loadAllData();
                 }
             }
+            
+            // --- Delete All Listeners ---
+            if (target.id === 'delete-all-program-button') {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data program (tracks, topics, dan papers) dan tidak dapat dibatalkan.')) {
+                    const { error } = await supabaseClient.from('tracks').delete().neq('id', 0);
+                    if (error) alert('Gagal menghapus program: ' + error.message); else loadAllData();
+                }
+            }
+            if (target.id === 'delete-all-schedule-button') {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA jadwal umum dan tidak dapat dibatalkan.')) {
+                    const { error } = await supabaseClient.from('sessions').delete().neq('id', 0);
+                    if (error) alert('Gagal menghapus jadwal: ' + error.message); else loadAllData();
+                }
+            }
+            if (target.id === 'delete-all-speakers-button') {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data pembicara dan tidak dapat dibatalkan.')) {
+                    const { error } = await supabaseClient.from('speakers').delete().neq('id', 0);
+                    if (error) alert('Gagal menghapus pembicara: ' + error.message); else loadAllData();
+                }
+            }
+            if (target.id === 'delete-all-team-button') {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data tim panitia dan tidak dapat dibatalkan.')) {
+                    const { error } = await supabaseClient.from('committees').delete().neq('id', 0);
+                    if (error) alert('Gagal menghapus tim: ' + error.message); else loadAllData();
+                }
+            }
         });
 
         // --- CSV Import Listeners ---
@@ -594,21 +630,16 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true, delimiter: "",
+                header: true, skipEmptyLines: true,
                 complete: async (results) => {
                     if (results.errors.length) {
                         statusElement.textContent = 'Gagal mem-parsing CSV. Periksa format.';
                         return alert('Gagal mem-parsing CSV.');
                     }
                     
-                    // **FIX**: Convert datetime strings to ISO format for CSV import
                     const dataToInsert = results.data.map(row => {
-                        if (row.start_time) {
-                            row.start_time = new Date(row.start_time).toISOString();
-                        }
-                        if (row.end_time) {
-                            row.end_time = new Date(row.end_time).toISOString();
-                        }
+                        if (row.start_time) row.start_time = new Date(row.start_time).toISOString();
+                        if (row.end_time) row.end_time = new Date(row.end_time).toISOString();
                         return row;
                     });
 
@@ -629,7 +660,7 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, skipEmptyLines: true, delimiter: "",
+                header: true, skipEmptyLines: true,
                 complete: async (results) => {
                     if (results.errors.length) return alert('Gagal mem-parsing CSV.');
                     
@@ -662,8 +693,8 @@
                                 abstract: row.paper_abstract,
                                 room: row.room,
                                 speaker_id: speakerId,
-                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null, // FIX
-                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null, // FIX
+                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null,
+                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null,
                             });
                             successCount++;
                         } catch(e) {
