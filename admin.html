@@ -166,7 +166,7 @@
     <script type="module">
         // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV-P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- State Aplikasi ---
@@ -630,18 +630,11 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, 
-                skipEmptyLines: true,
-                error: function(err) {
-                    console.error("CSV Parsing Error:", err);
-                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
-                    alert(`Gagal mem-parsing CSV: ${err.message}`);
-                },
+                header: true, skipEmptyLines: true,
                 complete: async (results) => {
                     if (results.errors.length) {
-                        const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
-                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
+                        statusElement.textContent = 'Gagal mem-parsing CSV. Periksa format.';
+                        return alert('Gagal mem-parsing CSV.');
                     }
                     
                     const dataToInsert = results.data.map(row => {
@@ -667,19 +660,9 @@
             if (!file) return;
             statusElement.textContent = 'Memproses...';
             Papa.parse(file, {
-                header: true, 
-                skipEmptyLines: true,
-                error: function(err) {
-                    console.error("CSV Parsing Error:", err);
-                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
-                    alert(`Gagal mem-parsing CSV: ${err.message}`);
-                },
+                header: true, skipEmptyLines: true,
                 complete: async (results) => {
-                    if (results.errors.length) {
-                         const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
-                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
-                    }
+                    if (results.errors.length) return alert('Gagal mem-parsing CSV.');
                     
                     let successCount = 0;
                     let errorCount = 0;
