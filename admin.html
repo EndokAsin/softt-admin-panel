@@ -154,7 +154,7 @@
     <script type="module">
         // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV-P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- State Aplikasi ---
@@ -183,18 +183,14 @@
             const startDate = new Date(startIso);
             const endDate = new Date(endIso);
 
-            // **FIX**: Set timezone to WITA (UTC+8)
-            const timeZone = 'Asia/Makassar';
-
-            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric', timeZone: timeZone };
-            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timeZone };
+            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric' };
+            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
 
             const dateString = startDate.toLocaleDateString('id-ID', optionsDate);
             const startTimeString = startDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
             const endTimeString = endDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
 
-            // **FIX**: Add (WITA) text
-            return `${dateString}, ${startTimeString} - ${endTimeString} (WITA)`;
+            return `${dateString}, ${startTimeString} - ${endTimeString}`;
         }
 
         // --- Fungsi Utama ---
