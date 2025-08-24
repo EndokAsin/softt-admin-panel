@@ -177,6 +177,22 @@
         const modalBody = document.getElementById('modal-body');
         const modalClose = document.getElementById('modal-close');
         
+        // --- Fungsi Helper ---
+        function formatDateTimeRange(startIso, endIso) {
+            if (!startIso || !endIso) return 'Waktu belum diatur';
+            const startDate = new Date(startIso);
+            const endDate = new Date(endIso);
+
+            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric' };
+            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+
+            const dateString = startDate.toLocaleDateString('id-ID', optionsDate);
+            const startTimeString = startDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
+            const endTimeString = endDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
+
+            return `${dateString}, ${startTimeString} - ${endTimeString}`;
+        }
+
         // --- Fungsi Utama ---
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -245,10 +261,10 @@
         function renderSchedule() {
             const container = document.getElementById('schedule-list');
             container.innerHTML = scheduleCache.length > 0 ? scheduleCache.map(session => `
-                <div class="bg-gray-50 p-3 rounded-md flex justify-between items-center">
+                <div class="bg-gray-50 p-3 rounded-md flex justify-between items-center mb-2">
                     <div>
                         <p class="font-semibold">${session.title}</p>
-                        <p class="text-sm text-gray-600">${new Date(session.start_time).toLocaleString('id-ID')} - ${new Date(session.end_time).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</p>
+                        <p class="text-sm text-gray-600">${formatDateTimeRange(session.start_time, session.end_time)}</p>
                     </div>
                     <div>
                         <button class="edit-session-btn btn-edit" data-id="${session.id}">Edit</button>
@@ -448,11 +464,15 @@
                     {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: paper?.start_time?.substring(0,16)},
                     {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: paper?.end_time?.substring(0,16)},
                 ], async formEl => {
+                    // **FIX**: Convert local datetime string to full ISO string (UTC)
+                    const startTime = formEl.start_time.value ? new Date(formEl.start_time.value).toISOString() : null;
+                    const endTime = formEl.end_time.value ? new Date(formEl.end_time.value).toISOString() : null;
+
                     const payload = {
                         topic_id: topicId,
                         title: formEl.title.value, abstract: formEl.abstract.value, room: formEl.room.value,
                         speaker_id: formEl.speaker_id.value || null,
-                        start_time: formEl.start_time.value || null, end_time: formEl.end_time.value || null,
+                        start_time: startTime, end_time: endTime,
                     };
                     const { error } = isEdit
                         ? await supabaseClient.from('papers').update(payload).eq('id', paper.id)
@@ -509,10 +529,14 @@
                     {label: 'Waktu Mulai', id: 'start_time', type: 'datetime-local', value: session?.start_time?.substring(0,16)},
                     {label: 'Waktu Selesai', id: 'end_time', type: 'datetime-local', value: session?.end_time?.substring(0,16)},
                 ], async formEl => {
+                    // **FIX**: Convert local datetime string to full ISO string (UTC)
+                    const startTime = formEl.start_time.value ? new Date(formEl.start_time.value).toISOString() : null;
+                    const endTime = formEl.end_time.value ? new Date(formEl.end_time.value).toISOString() : null;
+
                      const payload = {
-                        title: formEl.title.value, speaker: formEl.speaker.value, description: formEl.description.value,
-                        start_time: formEl.start_time.value || null, end_time: formEl.end_time.value || null,
-                    };
+                         title: formEl.title.value, speaker: formEl.speaker.value, description: formEl.description.value,
+                         start_time: startTime, end_time: endTime,
+                     };
                     const { error } = isEdit
                         ? await supabaseClient.from('sessions').update(payload).eq('id', session.id)
                         : await supabaseClient.from('sessions').insert(payload);
@@ -535,13 +559,13 @@
 
                 const form = createForm([
                     {label: 'Nama Lengkap', id: 'name', value: member?.name},
-                    {label: 'Jabatan', id: 'position', value: member?.position}, // REVISED
+                    {label: 'Jabatan', id: 'position', value: member?.position},
                     {label: 'Afiliasi', id: 'affiliation', value: member?.affiliation},
                     {label: 'Peran', id: 'role', type: 'select', options: roleOptions}
                 ], async formEl => {
                     const payload = {
                         name: formEl.name.value,
-                        position: formEl.position.value, // REVISED
+                        position: formEl.position.value,
                         affiliation: formEl.affiliation.value,
                         role: formEl.role.value
                     };
@@ -576,7 +600,19 @@
                         statusElement.textContent = 'Gagal mem-parsing CSV. Periksa format.';
                         return alert('Gagal mem-parsing CSV.');
                     }
-                    const { error } = await supabaseClient.from(tableName).insert(results.data);
+                    
+                    // **FIX**: Convert datetime strings to ISO format for CSV import
+                    const dataToInsert = results.data.map(row => {
+                        if (row.start_time) {
+                            row.start_time = new Date(row.start_time).toISOString();
+                        }
+                        if (row.end_time) {
+                            row.end_time = new Date(row.end_time).toISOString();
+                        }
+                        return row;
+                    });
+
+                    const { error } = await supabaseClient.from(tableName).insert(dataToInsert);
                     if (error) {
                         statusElement.textContent = 'Gagal impor: ' + error.message;
                         alert('Gagal impor: ' + error.message);
@@ -626,8 +662,8 @@
                                 abstract: row.paper_abstract,
                                 room: row.room,
                                 speaker_id: speakerId,
-                                start_time: row.start_time || null,
-                                end_time: row.end_time || null,
+                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null, // FIX
+                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null, // FIX
                             });
                             successCount++;
                         } catch(e) {
