@@ -685,14 +685,22 @@
                     submitButton.textContent = 'Mengunggah...';
 
                     // --- New Logic to find user based on paper's speaker ---
-                    const selectedPaper = programCache.flatMap(t => t.topics).flatMap(t => t.papers).find(p => p.id == paperId);
-                    if (!selectedPaper || !selectedPaper.speakers) {
+                    const selectedPaper = papersCache.find(p => p.id == paperId);
+                    const speakerId = selectedPaper?.speaker_id;
+
+                    if (!speakerId) {
                         submitButton.disabled = false;
                         submitButton.textContent = 'Simpan';
-                        return alert('Paper tidak valid atau tidak memiliki data pembicara.');
+                        return alert('Paper yang dipilih tidak memiliki data pembicara.');
                     }
                     
-                    const speakerName = selectedPaper.speakers.name;
+                    const speakerName = speakersCache.find(s => s.id === speakerId)?.name;
+                    if (!speakerName) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Simpan';
+                        return alert('Data pembicara untuk paper ini tidak ditemukan.');
+                    }
+
                     const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('full_name', speakerName).eq('role', 'participant').single();
 
                     if (profileError || !profile) {
