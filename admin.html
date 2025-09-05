@@ -61,9 +61,7 @@
                         <p id="admin-email" class="text-xs text-gray-400 truncate"></p>
                     </div>
                     <nav id="sidebar-nav" class="flex-grow p-4 space-y-2">
-                        <a href="#" data-target="manage-program" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Program Konferensi</a>
-                        <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
-                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
+                        <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg bg-gray-700">Pembicara</a>
                         <a href="#" data-target="manage-team" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Tim Panitia</a>
                         <a href="#" data-target="manage-certificates" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Kelola Sertifikat</a>
                     </nav>
@@ -74,44 +72,8 @@
 
                 <!-- Konten Utama Dasbor -->
                 <main class="flex-grow p-8 bg-gray-50 overflow-y-auto">
-                    <!-- Konten Program Konferensi -->
-                    <div id="manage-program" class="dashboard-content">
-                        <div class="flex justify-between items-center mb-6">
-                            <h1 class="text-3xl font-bold text-gray-800">Program Konferensi</h1>
-                            <div class="flex items-center space-x-2">
-                                <button id="delete-all-program-button" class="btn btn-secondary">Hapus Semua</button>
-                                <button id="add-track-button" class="btn btn-primary">Tambah Track</button>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow mb-6">
-                            <h2 class="text-xl font-semibold text-gray-700">Impor Paper dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom: `track_name`, `topic_name`, `paper_title`, `speaker_name`, `paper_abstract`, `room`, `start_time`, `end_time`.</p>
-                            <input type="file" id="program-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
-                            <p id="program-import-status" class="mt-2 text-sm font-medium"></p>
-                        </div>
-                        <div id="program-list" class="space-y-4"></div>
-                    </div>
-
-                    <!-- Konten Jadwal Umum -->
-                    <div id="manage-schedule" class="dashboard-content hidden">
-                         <div class="flex justify-between items-center mb-6">
-                            <h1 class="text-3xl font-bold text-gray-800">Jadwal Umum</h1>
-                            <div class="flex items-center space-x-2">
-                                <button id="delete-all-schedule-button" class="btn btn-secondary">Hapus Semua</button>
-                                <button id="add-session-button" class="btn btn-primary">Tambah Sesi</button>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow mb-6">
-                            <h2 class="text-xl font-semibold text-gray-700">Impor Sesi dari CSV</h2>
-                             <p class="text-sm text-gray-500 mt-1">Kolom: `title`, `start_time`, `end_time`, `speaker`, `description`.</p>
-                            <input type="file" id="schedule-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
-                             <p id="schedule-import-status" class="mt-2 text-sm font-medium"></p>
-                        </div>
-                        <div id="schedule-list" class="mt-6 bg-white p-4 rounded-lg shadow"></div>
-                    </div>
-
                     <!-- Konten Pembicara -->
-                    <div id="manage-speakers" class="dashboard-content hidden">
+                    <div id="manage-speakers" class="dashboard-content">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Kelola Pembicara</h1>
                             <div class="flex items-center space-x-2">
@@ -194,11 +156,8 @@
 
         // --- State Aplikasi ---
         let speakersCache = [];
-        let programCache = [];
-        let scheduleCache = [];
         let teamCache = [];
         let certificateCache = [];
-        let participantsCache = [];
         let papersCache = [];
 
         // --- Elemen DOM ---
@@ -218,22 +177,6 @@
         const certificateImportStatus = document.getElementById('certificate-import-status');
         const certificatesTableContainer = document.getElementById('certificates-table-container');
         
-        // --- Fungsi Helper ---
-        function formatDateTimeRange(startIso, endIso) {
-            if (!startIso || !endIso) return 'Waktu belum diatur';
-            const startDate = new Date(startIso);
-            const endDate = new Date(endIso);
-
-            const optionsDate = { day: 'numeric', month: 'short', year: 'numeric' };
-            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
-
-            const dateString = startDate.toLocaleDateString('id-ID', optionsDate);
-            const startTimeString = startDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
-            const endTimeString = endDate.toLocaleTimeString('id-ID', optionsTime).replace(/\./g, ':');
-
-            return `${dateString}, ${startTimeString} - ${endTimeString}`;
-        }
-
         // --- Fungsi Utama ---
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -264,26 +207,18 @@
         }
 
         async function loadAllData() {
-            const [programRes, speakersRes, scheduleRes, teamRes, certificateRes, participantsRes, papersRes] = await Promise.all([
-                supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(name)))`).order('name'),
+            const [speakersRes, teamRes, certificateRes, papersRes] = await Promise.all([
                 supabaseClient.from('speakers').select('*').order('name'),
-                supabaseClient.from('sessions').select('*').order('start_time'),
                 supabaseClient.from('committees').select('*').order('name'),
-                supabaseClient.from('participant_certificates').select('*, profiles(full_name), papers(title)').order('created_at'),
-                supabaseClient.from('profiles').select('id, full_name').eq('role', 'participant').order('full_name'),
+                supabaseClient.from('participant_certificates').select('*, profiles(full_name, email), papers(title)').order('created_at'),
                 supabaseClient.from('papers').select('id, title').order('title')
             ]);
 
-            programCache = programRes.data || [];
             speakersCache = speakersRes.data || [];
-            scheduleCache = scheduleRes.data || [];
             teamCache = teamRes.data || [];
             certificateCache = certificateRes.data || [];
-            participantsCache = participantsRes.data || [];
             papersCache = papersRes.data || [];
 
-            renderProgram();
-            renderSchedule();
             renderSpeakers();
             renderTeam();
             renderCertificates();
@@ -304,64 +239,6 @@
                     </div>
                 </div>
             `).join('') : '<p>Belum ada data pembicara.</p>';
-        }
-
-        function renderSchedule() {
-            const container = document.getElementById('schedule-list');
-            container.innerHTML = scheduleCache.length > 0 ? scheduleCache.map(session => `
-                <div class="bg-gray-50 p-3 rounded-md flex justify-between items-center mb-2">
-                    <div>
-                        <p class="font-semibold">${session.title}</p>
-                        <p class="text-sm text-gray-600">${formatDateTimeRange(session.start_time, session.end_time)}</p>
-                    </div>
-                    <div>
-                        <button class="edit-session-btn btn-edit" data-id="${session.id}">Edit</button>
-                        <button class="delete-session-btn btn-delete" data-id="${session.id}" data-name="${session.title}">Hapus</button>
-                    </div>
-                </div>
-            `).join('') : '<p>Belum ada jadwal umum.</p>';
-        }
-
-        function renderProgram() {
-            const container = document.getElementById('program-list');
-            container.innerHTML = programCache.length > 0 ? programCache.map(track => `
-                <div class="bg-white rounded-lg shadow-md p-4 mb-4">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-gray-800">${track.name}</h3>
-                        <div>
-                            <button class="add-topic-btn btn-add" data-track-id="${track.id}">Tambah Topik</button>
-                            <button class="edit-track-btn btn-edit ml-2" data-id="${track.id}">Edit</button>
-                            <button class="delete-track-btn btn-delete" data-id="${track.id}" data-name="${track.name}">Hapus</button>
-                        </div>
-                    </div>
-                    <div class="mt-4 pl-4 border-l-2 border-gray-200 space-y-3">
-                        ${track.topics.length > 0 ? track.topics.map(topic => `
-                            <div class="bg-gray-50 p-3 rounded-md">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-semibold text-gray-700">${topic.name}</h4>
-                                    <div>
-                                        <button class="add-paper-btn btn-add" data-topic-id="${topic.id}">Tambah Paper</button>
-                                        <button class="edit-topic-btn btn-edit ml-2" data-id="${topic.id}" data-track-id="${track.id}">Edit</button>
-                                        <button class="delete-topic-btn btn-delete" data-id="${topic.id}" data-name="${topic.name}">Hapus</button>
-                                    </div>
-                                </div>
-                                <div class="mt-2 pl-4 space-y-2">
-                                    ${topic.papers.length > 0 ? topic.papers.map(paper => `
-                                        <div class="border-t pt-2">
-                                            <p class="font-medium">${paper.title}</p>
-                                            <p class="text-sm text-gray-500">Pembicara: ${paper.speakers?.name || 'N/A'} | Ruang: ${paper.room || 'N/A'}</p>
-                                            <div class="text-right">
-                                                <button class="edit-paper-btn btn-edit" data-id="${paper.id}" data-topic-id="${topic.id}">Edit</button>
-                                                <button class="delete-paper-btn btn-delete" data-id="${paper.id}" data-name="${paper.title}">Hapus</button>
-                                            </div>
-                                        </div>
-                                    `).join('') : '<p class="text-xs text-gray-400">Belum ada paper.</p>'}
-                                </div>
-                            </div>
-                        `).join('') : '<p class="text-sm text-gray-400">Belum ada topik.</p>'}
-                    </div>
-                </div>
-            `).join('') : '<p>Belum ada program yang dibuat.</p>';
         }
 
         function renderTeam() {
@@ -562,21 +439,20 @@
 
             // --- Certificate Management ---
             if (target.id === 'add-certificate-button') {
-                const participantOptions = participantsCache.map(p => `<option value="${p.id}">${p.full_name}</option>`).join('');
                 const paperOptions = papersCache.map(p => `<option value="${p.id}">(${p.id}) ${p.title}</option>`).join('');
                 
                 const form = createForm([
-                    {label: 'Pilih Peserta', id: 'user_id', type: 'select', options: `<option value="">-- Pilih Peserta --</option>${participantOptions}`},
+                    {label: 'Email Peserta', id: 'user_email', type: 'email'},
                     {label: 'Pilih Paper', id: 'paper_id', type: 'select', options: `<option value="">-- Pilih Paper --</option>${paperOptions}`},
                     {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
                     {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
                 ], async formEl => {
                     const file = formEl.certificate_file.files[0];
-                    const userId = formEl.user_id.value;
+                    const userEmail = formEl.user_email.value;
                     const paperId = formEl.paper_id.value;
                     const certificateType = formEl.certificate_type.value;
 
-                    if (!file || !userId || !paperId || !certificateType) {
+                    if (!file || !userEmail || !paperId || !certificateType) {
                         return alert('Semua field wajib diisi.');
                     }
                     if (file.type !== 'application/pdf') {
@@ -586,6 +462,14 @@
                     const submitButton = formEl.querySelector('button[type="submit"]');
                     submitButton.disabled = true;
                     submitButton.textContent = 'Mengunggah...';
+
+                    const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('email', userEmail).single();
+                    if (profileError || !profile) {
+                         submitButton.disabled = false;
+                         submitButton.textContent = 'Simpan';
+                        return alert('User dengan email tersebut tidak ditemukan.');
+                    }
+                    const userId = profile.id;
 
                     const filePath = `public/${userId}-${paperId}-${file.name}`;
                     const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
@@ -622,18 +506,6 @@
             }
             
             // --- Delete All Listeners ---
-            if (target.id === 'delete-all-program-button') {
-                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data program dan tidak dapat dibatalkan.')) {
-                    const { error } = await supabaseClient.from('tracks').delete().neq('id', 0);
-                    if (error) alert('Gagal menghapus program: ' + error.message); else loadAllData();
-                }
-            }
-            if (target.id === 'delete-all-schedule-button') {
-                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA jadwal umum dan tidak dapat dibatalkan.')) {
-                    const { error } = await supabaseClient.from('sessions').delete().neq('id', 0);
-                    if (error) alert('Gagal menghapus jadwal: ' + error.message); else loadAllData();
-                }
-            }
             if (target.id === 'delete-all-speakers-button') {
                 if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data pembicara dan tidak dapat dibatalkan.')) {
                     const { error } = await supabaseClient.from('speakers').delete().neq('id', 0);
@@ -656,8 +528,6 @@
 
         // --- CSV Import Listeners ---
         document.getElementById('speaker-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'speakers', document.getElementById('speaker-import-status')));
-        document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
-        document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
         document.getElementById('team-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'committees', document.getElementById('team-import-status')));
         document.getElementById('certificate-csv-input').addEventListener('change', e => handleCertificateCsvImport(e.target.files[0], document.getElementById('certificate-import-status')));
 
@@ -679,12 +549,7 @@
                         return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
                     }
                     
-                    const dataToInsert = results.data.map(row => {
-                        if (row.start_time) row.start_time = new Date(row.start_time).toISOString();
-                        if (row.end_time) row.end_time = new Date(row.end_time).toISOString();
-                        return row;
-                    });
-
+                    const dataToInsert = results.data;
                     const { error } = await supabaseClient.from(tableName).insert(dataToInsert);
 
                     if (error) {
@@ -695,73 +560,6 @@
                         alert('Impor berhasil!'); 
                         loadAllData(); 
                     }
-                }
-            });
-        }
-        
-        async function handleProgramCsvImport(file, statusElement) {
-            if (!file) return;
-            statusElement.textContent = 'Memproses...';
-            Papa.parse(file, {
-                header: true, 
-                skipEmptyLines: true,
-                error: function(err) {
-                    console.error("CSV Parsing Error:", err);
-                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
-                    alert(`Gagal mem-parsing CSV: ${err.message}`);
-                },
-                complete: async (results) => {
-                    if (results.errors.length) {
-                         const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
-                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
-                    }
-                    
-                    let successCount = 0;
-                    let errorCount = 0;
-
-                    for (const row of results.data) {
-                        try {
-                            let { data: track } = await supabaseClient.from('tracks').select('id').eq('name', row.track_name).single();
-                            if (!track) {
-                                const { data: newTrack } = await supabaseClient.from('tracks').insert({name: row.track_name}).select().single();
-                                track = newTrack;
-                            }
-                            
-                            let { data: topic } = await supabaseClient.from('topics').select('id').eq('name', row.topic_name).eq('track_id', track.id).single();
-                            if (!topic) {
-                                const { data: newTopic } = await supabaseClient.from('topics').insert({name: row.topic_name, track_id: track.id}).select().single();
-                                topic = newTopic;
-                            }
-                            
-                            let speakerId = null;
-                            if (row.speaker_name) {
-                                let { data: speaker } = await supabaseClient.from('speakers').select('id').eq('name', row.speaker_name).single();
-                                if(!speaker){
-                                    const { data: newSpeaker } = await supabaseClient.from('speakers').insert({name: row.speaker_name}).select().single();
-                                    speaker = newSpeaker;
-                                }
-                                if (speaker) speakerId = speaker.id;
-                            }
-                            
-                            await supabaseClient.from('papers').insert({
-                                topic_id: topic.id,
-                                title: row.paper_title,
-                                abstract: row.paper_abstract,
-                                room: row.room,
-                                speaker_id: speakerId,
-                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null,
-                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null,
-                            });
-                            successCount++;
-                        } catch(e) {
-                            errorCount++;
-                            console.error('Gagal memproses baris:', row, e);
-                        }
-                    }
-                    statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
-                    alert('Impor program selesai!');
-                    loadAllData();
                 }
             });
         }
@@ -840,3 +638,4 @@
     </script>
 </body>
 </html>
+
