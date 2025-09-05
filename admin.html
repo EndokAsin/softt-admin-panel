@@ -684,12 +684,12 @@
                     // --- New Logic to find user based on paper's speaker ---
                     const selectedPaper = papersCache.find(p => p.id == paperId);
                     const speakerId = selectedPaper?.speaker_id;
-
+                    
                     const speakerName = speakersCache.find(s => s.id === speakerId)?.name;
 
                     const { data: profile, error: profileError } = speakerName 
                         ? await supabaseClient.from('profiles').select('id').eq('full_name', speakerName).eq('role', 'participant').single()
-                        : { data: null, error: { message: "Data pembicara tidak ditemukan untuk paper ini."}};
+                        : { data: null, error: null }; // Assume no user if no speaker name
 
                     if (profileError || !profile) {
                          submitButton.disabled = false;
