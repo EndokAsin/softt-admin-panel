@@ -65,6 +65,7 @@
                         <a href="#" data-target="manage-schedule" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Jadwal Umum</a>
                         <a href="#" data-target="manage-speakers" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Pembicara</a>
                         <a href="#" data-target="manage-team" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Tim Panitia</a>
+                        <a href="#" data-target="manage-certificates" class="nav-link flex items-center px-3 py-2 rounded-lg hover:bg-gray-700">Kelola Sertifikat</a>
                     </nav>
                     <div class="p-4 border-t border-gray-700">
                         <button id="logout-button" class="w-full btn bg-red-600 hover:bg-red-700">Logout</button>
@@ -147,6 +148,25 @@
                         </div>
                         <div id="team-list" class="space-y-6"></div>
                     </div>
+                    
+                    <!-- Konten Sertifikat -->
+                    <div id="manage-certificates" class="dashboard-content hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-3xl font-bold text-gray-800">Kelola Sertifikat</h1>
+                            <button id="delete-all-certificates-button" class="btn btn-secondary">Hapus Semua Sertifikat</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h2 class="text-xl font-semibold text-gray-700">Impor Sertifikat dari CSV</h2>
+                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `paper_id`, `user_email`, `certificate_type`, `certificate_url`.</p>
+                            <p class="text-sm text-gray-500 mt-1">Nilai `certificate_type` harus `author` atau `presenter`.</p>
+                            <input type="file" id="certificate-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
+                            <p id="certificate-import-status" class="mt-2 text-sm font-medium"></p>
+                        </div>
+                        <div id="certificate-list" class="mt-6 bg-white p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold text-gray-700 mb-4">Daftar Sertifikat Terunggah</h2>
+                            <div id="certificates-table-container"></div>
+                        </div>
+                    </div>
                 </main>
             </div>
         </div>
@@ -154,7 +174,7 @@
 
     <!-- Modal Dialog -->
     <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full">
+         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full">
             <div class="p-4 border-b flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold"></h3>
                 <button id="modal-close" class="text-2xl font-bold text-gray-400 hover:text-gray-600">&times;</button>
@@ -166,7 +186,7 @@
     <script type="module">
         // --- Inisialisasi Klien Supabase ---
         const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV-6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- State Aplikasi ---
@@ -174,6 +194,8 @@
         let programCache = [];
         let scheduleCache = [];
         let teamCache = [];
+        let certificateCache = [];
+
 
         // --- Elemen DOM ---
         const loginPage = document.getElementById('login-page');
@@ -188,6 +210,10 @@
         const modalTitle = document.getElementById('modal-title');
         const modalBody = document.getElementById('modal-body');
         const modalClose = document.getElementById('modal-close');
+        const certificateCsvInput = document.getElementById('certificate-csv-input');
+        const certificateImportStatus = document.getElementById('certificate-import-status');
+        const certificatesTableContainer = document.getElementById('certificates-table-container');
+
         
         // --- Fungsi Helper ---
         function formatDateTimeRange(startIso, endIso) {
@@ -235,22 +261,25 @@
         }
 
         async function loadAllData() {
-            const [programRes, speakersRes, scheduleRes, teamRes] = await Promise.all([
+            const [programRes, speakersRes, scheduleRes, teamRes, certificateRes] = await Promise.all([
                 supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(name)))`).order('name'),
                 supabaseClient.from('speakers').select('*').order('name'),
                 supabaseClient.from('sessions').select('*').order('start_time'),
-                supabaseClient.from('committees').select('*').order('name')
+                supabaseClient.from('committees').select('*').order('name'),
+                supabaseClient.from('participant_certificates').select('*, profiles(full_name, email), papers(title)').order('created_at')
             ]);
 
             programCache = programRes.data || [];
             speakersCache = speakersRes.data || [];
             scheduleCache = scheduleRes.data || [];
             teamCache = teamRes.data || [];
+            certificateCache = certificateRes.data || [];
 
             renderProgram();
             renderSpeakers();
             renderSchedule();
             renderTeam();
+            renderCertificates();
         }
 
         // --- Render Functions ---
@@ -312,7 +341,7 @@
                                 <div class="mt-2 pl-4 space-y-2">
                                     ${topic.papers.map(paper => `
                                         <div class="border-t pt-2">
-                                            <p class="font-medium">${paper.title}</p>
+                                            <p class="font-medium">${paper.title} (ID: ${paper.id})</p>
                                             <p class="text-sm text-gray-500">Pembicara: ${paper.speakers?.name || 'N/A'} | Ruang: ${paper.room || 'N/A'}</p>
                                             <div class="text-right">
                                                 <button class="edit-paper-btn btn-edit" data-id="${paper.id}" data-topic-id="${topic.id}">Edit</button>
@@ -360,6 +389,37 @@
                 `;
             }
             container.innerHTML = html;
+        }
+
+        function renderCertificates() {
+            let html = `
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="p-2">Email Peserta</th>
+                            <th class="p-2">Judul Paper</th>
+                            <th class="p-2">Tipe</th>
+                            <th class="p-2">URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            if (certificateCache.length > 0) {
+                certificateCache.forEach(cert => {
+                    html += `
+                        <tr class="border-b">
+                            <td class="p-2">${cert.profiles?.email || 'N/A'}</td>
+                            <td class="p-2">${cert.papers?.title || 'N/A'} (ID: ${cert.paper_id})</td>
+                            <td class="p-2">${cert.certificate_type}</td>
+                            <td class="p-2"><a href="${cert.certificate_url}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></td>
+                        </tr>`;
+                });
+            } else {
+                html += `<tr><td colspan="4" class="p-4 text-center">Belum ada data sertifikat.</td></tr>`;
+            }
+
+            html += `</tbody></table>`;
+            certificatesTableContainer.innerHTML = html;
         }
         
         function createForm(fields, onSubmit) {
@@ -618,6 +678,12 @@
                     if (error) alert('Gagal menghapus tim: ' + error.message); else loadAllData();
                 }
             }
+            if (target.id === 'delete-all-certificates-button') {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data sertifikat peserta dan tidak dapat dibatalkan.')) {
+                    const { error } = await supabaseClient.from('participant_certificates').delete().neq('id', 0);
+                    if (error) alert('Gagal menghapus sertifikat: ' + error.message); else loadAllData();
+                }
+            }
         });
 
         // --- CSV Import Listeners ---
@@ -625,27 +691,31 @@
         document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
         document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
         document.getElementById('team-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'committees', document.getElementById('team-import-status')));
+        certificateCsvInput.addEventListener('change', e => handleCertificateCsvImport(e.target.files[0], certificateImportStatus));
+
 
         async function handleCsvImport(file, tableName, statusElement) {
             if (!file) return;
             statusElement.textContent = 'Memproses...';
+            statusElement.className = 'mt-2 text-sm font-medium text-gray-600';
+
             Papa.parse(file, {
                 header: true, 
                 skipEmptyLines: true,
-                error: function(err) {
-                    console.error("CSV Parsing Error:", err);
-                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
-                    alert(`Gagal mem-parsing CSV: ${err.message}`);
+                error: (err) => {
+                    statusElement.textContent = `Gagal membaca file CSV: ${err.message}`;
+                    statusElement.className = 'mt-2 text-sm font-medium text-red-600';
                 },
                 complete: async (results) => {
                     if (results.errors.length) {
                         const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
-                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
+                        statusElement.textContent = `Gagal mem-parsing CSV: ${errorMsg}`;
+                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                        return;
                     }
                     
                     const dataToInsert = results.data.map(row => {
-                        // **FIX**: Do NOT convert time from CSV. Let Supabase handle the raw string.
+                         // **FIX**: Do NOT convert time from CSV. Let Supabase handle the raw string.
                         // This requires the CSV time to be in a format Supabase understands,
                         // ideally with a timezone offset like '2025-08-24 20:30:00+07:00'
                         return row;
@@ -654,10 +724,10 @@
                     const { error } = await supabaseClient.from(tableName).insert(dataToInsert);
                     if (error) {
                         statusElement.textContent = 'Gagal impor: ' + error.message;
-                        alert('Gagal impor: ' + error.message);
+                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
                     } else { 
                         statusElement.textContent = `Impor ${results.data.length} baris berhasil!`;
-                        alert('Impor berhasil!'); 
+                        statusElement.className = 'mt-2 text-sm font-medium text-green-600';
                         loadAllData(); 
                     }
                 }
@@ -667,19 +737,21 @@
         async function handleProgramCsvImport(file, statusElement) {
             if (!file) return;
             statusElement.textContent = 'Memproses...';
+            statusElement.className = 'mt-2 text-sm font-medium text-gray-600';
+
             Papa.parse(file, {
                 header: true, 
                 skipEmptyLines: true,
-                error: function(err) {
-                    console.error("CSV Parsing Error:", err);
-                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
-                    alert(`Gagal mem-parsing CSV: ${err.message}`);
+                 error: (err) => {
+                    statusElement.textContent = `Gagal membaca file CSV: ${err.message}`;
+                    statusElement.className = 'mt-2 text-sm font-medium text-red-600';
                 },
                 complete: async (results) => {
-                    if (results.errors.length) {
+                     if (results.errors.length) {
                          const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
-                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
+                        statusElement.textContent = `Gagal mem-parsing CSV: ${errorMsg}`;
+                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                        return;
                     }
                     
                     let successCount = 0;
@@ -711,7 +783,6 @@
                                 abstract: row.paper_abstract,
                                 room: row.room,
                                 speaker_id: speakerId,
-                                // **FIX**: Do NOT convert time from CSV.
                                 start_time: row.start_time || null,
                                 end_time: row.end_time || null,
                             });
@@ -722,7 +793,74 @@
                         }
                     }
                     statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
-                    alert('Impor program selesai!');
+                    statusElement.className = 'mt-2 text-sm font-medium text-green-600';
+                    loadAllData();
+                }
+            });
+        }
+        
+        async function handleCertificateCsvImport(file, statusElement) {
+            if (!file) return;
+            statusElement.textContent = 'Memproses...';
+            statusElement.className = 'mt-2 text-sm font-medium text-gray-600';
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                error: (err) => {
+                    statusElement.textContent = `Gagal membaca file CSV: ${err.message}`;
+                    statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                },
+                complete: async (results) => {
+                    if (results.errors.length) {
+                         const errorMsg = results.errors.map(e => e.message).join('\n');
+                        statusElement.textContent = `Gagal mem-parsing CSV: ${errorMsg}`;
+                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                        return;
+                    }
+
+                    const rows = results.data;
+                    let errorCount = 0;
+                    
+                    const emails = rows.map(r => r.user_email).filter(e => e);
+                    const { data: users, error: userError } = await supabaseClient.from('profiles').select('id, email').in('email', emails);
+
+                    if(userError) {
+                        statusElement.textContent = `Gagal mengambil data user: ${userError.message}`;
+                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                        return;
+                    }
+                    
+                    const userMap = new Map(users.map(u => [u.email, u.id]));
+
+                    const dataToInsert = [];
+                    for(const row of rows) {
+                        const userId = userMap.get(row.user_email);
+                        if (!userId) {
+                            console.warn(`User dengan email ${row.user_email} tidak ditemukan.`);
+                            errorCount++;
+                            continue;
+                        }
+
+                        dataToInsert.push({
+                            user_id: userId,
+                            paper_id: parseInt(row.paper_id, 10),
+                            certificate_type: row.certificate_type,
+                            certificate_url: row.certificate_url
+                        });
+                    }
+
+                    if (dataToInsert.length > 0) {
+                        const { error } = await supabaseClient.from('participant_certificates').upsert(dataToInsert);
+                        if (error) {
+                            statusElement.textContent = `Gagal impor: ${error.message}`;
+                            statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                            return;
+                        }
+                    }
+                    const successCount = dataToInsert.length;
+                    statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
+                    statusElement.className = 'mt-2 text-sm font-medium text-green-600';
                     loadAllData();
                 }
             });
@@ -732,3 +870,4 @@
         init();
     </script>
 </body>
+</html>
