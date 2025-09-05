@@ -160,7 +160,7 @@
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Sertifikat dari CSV</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `paper_id`, `user_email`, `certificate_type`, `certificate_url`.</p>
+                            <p class="text-sm text-gray-500 mt-1">Kolom wajib: `paper_id`, `certificate_type`, `certificate_url`.</p>
                             <p class="text-sm text-gray-500 mt-1">Nilai `certificate_type` harus `author` atau `presenter`.</p>
                             <input type="file" id="certificate-csv-input" accept=".csv" class="mt-4 block w-full text-sm"/>
                             <p id="certificate-import-status" class="mt-2 text-sm font-medium"></p>
@@ -268,7 +268,7 @@
                 supabaseClient.from('sessions').select('*').order('start_time'),
                 supabaseClient.from('speakers').select('*').order('name'),
                 supabaseClient.from('committees').select('*').order('name'),
-                supabaseClient.from('participant_certificates').select('*, profiles(full_name), papers(title)').order('created_at'),
+                supabaseClient.from('participant_certificates').select('*, papers(title)').order('created_at'),
                 supabaseClient.from('papers').select('id, title, speaker_id').order('title')
             ]);
 
@@ -400,7 +400,6 @@
                 <table class="w-full text-sm text-left">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="p-2">Nama Peserta</th>
                             <th class="p-2">Judul Paper</th>
                             <th class="p-2">Tipe</th>
                             <th class="p-2">URL</th>
@@ -412,14 +411,13 @@
                 certificateCache.forEach(cert => {
                     html += `
                         <tr class="border-b">
-                            <td class="p-2">${cert.profiles?.full_name || 'N/A'}</td>
-                            <td class="p-2">${cert.papers?.title || 'N/A'}</td>
+                            <td class="p-2">${cert.papers?.title || `Paper ID: ${cert.paper_id}`}</td>
                             <td class="p-2">${cert.certificate_type}</td>
                             <td class="p-2"><a href="${cert.certificate_url}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></td>
                         </tr>`;
                 });
             } else {
-                html += `<tr><td colspan="4" class="p-4 text-center">Belum ada data sertifikat.</td></tr>`;
+                html += `<tr><td colspan="3" class="p-4 text-center">Belum ada data sertifikat.</td></tr>`;
             }
 
             html += `</tbody></table>`;
@@ -680,26 +678,8 @@
                     const submitButton = formEl.querySelector('button[type="submit"]');
                     submitButton.disabled = true;
                     submitButton.textContent = 'Mengunggah...';
-
-                    // --- New Logic to find user based on paper's speaker ---
-                    const selectedPaper = papersCache.find(p => p.id == paperId);
-                    const speakerId = selectedPaper?.speaker_id;
                     
-                    const speakerName = speakersCache.find(s => s.id === speakerId)?.name;
-
-                    const { data: profile, error: profileError } = speakerName 
-                        ? await supabaseClient.from('profiles').select('id').eq('full_name', speakerName).eq('role', 'participant').single()
-                        : { data: null, error: null }; // Assume no user if no speaker name
-
-                    if (profileError || !profile) {
-                         submitButton.disabled = false;
-                         submitButton.textContent = 'Simpan';
-                        return alert(`Tidak ditemukan profil peserta yang cocok. Pastikan paper memiliki pembicara dan nama pembicara sama persis dengan nama lengkap peserta.`);
-                    }
-                    const userId = profile.id;
-                    // --- End of New Logic ---
-
-                    const filePath = `public/${userId}-${paperId}-${file.name}`;
+                    const filePath = `public/${paperId}-${certificateType}-${file.name}`;
                     const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
                     
                     if (uploadError) {
@@ -714,10 +694,10 @@
                     const { error: insertError } = await supabaseClient
                         .from('participant_certificates')
                         .insert({
-                            user_id: userId,
                             paper_id: parseInt(paperId, 10),
                             certificate_type: certificateType,
-                            certificate_url: certificateUrl
+                            certificate_url: certificateUrl,
+                            user_id: null // Explicitly set user_id to null
                         });
                     
                     if (insertError) {
@@ -898,37 +878,12 @@
                         return;
                     }
 
-                    const rows = results.data;
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    const emails = rows.map(r => r.user_email);
-                    const { data: users, error: userError } = await supabaseClient.from('profiles').select('id, email').in('email', emails);
-
-                    if(userError) {
-                        statusElement.textContent = `Gagal mengambil data user: ${userError.message}`;
-                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
-                        return;
-                    }
-                    
-                    const userMap = new Map(users.map(u => [u.email, u.id]));
-
-                    const dataToInsert = [];
-                    for(const row of rows) {
-                        const userId = userMap.get(row.user_email);
-                        if (!userId) {
-                            console.warn(`User dengan email ${row.user_email} tidak ditemukan.`);
-                            errorCount++;
-                            continue;
-                        }
-
-                        dataToInsert.push({
-                            user_id: userId,
-                            paper_id: parseInt(row.paper_id, 10),
-                            certificate_type: row.certificate_type,
-                            certificate_url: row.certificate_url
-                        });
-                    }
+                    const dataToInsert = results.data.map(row => ({
+                        paper_id: parseInt(row.paper_id, 10),
+                        certificate_type: row.certificate_type,
+                        certificate_url: row.certificate_url,
+                        user_id: null // Explicitly set user_id to null
+                    }));
 
                     if (dataToInsert.length > 0) {
                         const { error } = await supabaseClient.from('participant_certificates').upsert(dataToInsert);
@@ -937,10 +892,9 @@
                             statusElement.className = 'mt-2 text-sm font-medium text-red-600';
                             return;
                         }
-                        successCount = dataToInsert.length;
                     }
 
-                    statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
+                    statusElement.textContent = `Impor selesai. Berhasil: ${results.data.length} baris.`;
                     statusElement.className = 'mt-2 text-sm font-medium text-green-600';
                     loadAllData();
                 }
