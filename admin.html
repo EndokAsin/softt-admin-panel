@@ -198,7 +198,6 @@
         let scheduleCache = [];
         let teamCache = [];
         let certificateCache = [];
-        let participantsCache = [];
         let papersCache = [];
 
         // --- Elemen DOM ---
@@ -264,13 +263,12 @@
         }
 
         async function loadAllData() {
-            const [programRes, scheduleRes, speakersRes, teamRes, certificateRes, participantsRes, papersRes] = await Promise.all([
+            const [programRes, scheduleRes, speakersRes, teamRes, certificateRes, papersRes] = await Promise.all([
                 supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(id, name)))`).order('name'),
                 supabaseClient.from('sessions').select('*').order('start_time'),
                 supabaseClient.from('speakers').select('*').order('name'),
                 supabaseClient.from('committees').select('*').order('name'),
                 supabaseClient.from('participant_certificates').select('*, profiles(full_name), papers(title)').order('created_at'),
-                supabaseClient.from('profiles').select('id, full_name').eq('role', 'participant').order('full_name'),
                 supabaseClient.from('papers').select('id, title, speaker_id').order('title')
             ]);
 
@@ -279,7 +277,6 @@
             speakersCache = speakersRes.data || [];
             teamCache = teamRes.data || [];
             certificateCache = certificateRes.data || [];
-            participantsCache = participantsRes.data || [];
             papersCache = papersRes.data || [];
 
             renderProgram();
@@ -665,7 +662,7 @@
                 const paperOptions = papersCache.map(p => `<option value="${p.id}">(${p.id}) ${p.title}</option>`).join('');
                 
                 const form = createForm([
-                    {label: 'ID Paper', id: 'paper_id', type: 'number'},
+                    {label: 'Pilih Paper', id: 'paper_id', type: 'select', options: `<option value="">-- Pilih Paper --</option>${paperOptions}`},
                     {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
                     {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
                 ], async formEl => {
@@ -684,13 +681,23 @@
                     submitButton.disabled = true;
                     submitButton.textContent = 'Mengunggah...';
 
-                    const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('email', userEmail).single();
+                    // --- New Logic to find user based on paper's speaker ---
+                    const selectedPaper = papersCache.find(p => p.id == paperId);
+                    const speakerId = selectedPaper?.speaker_id;
+                    
+                    const speakerName = speakersCache.find(s => s.id === speakerId)?.name;
+
+                    const { data: profile, error: profileError } = speakerName 
+                        ? await supabaseClient.from('profiles').select('id').eq('full_name', speakerName).eq('role', 'participant').single()
+                        : { data: null, error: null }; // Assume no user if no speaker name
+
                     if (profileError || !profile) {
                          submitButton.disabled = false;
                          submitButton.textContent = 'Simpan';
-                        return alert('User dengan email tersebut tidak ditemukan.');
+                        return alert(`Tidak ditemukan profil peserta yang cocok. Pastikan paper memiliki pembicara dan nama pembicara sama persis dengan nama lengkap peserta.`);
                     }
                     const userId = profile.id;
+                    // --- End of New Logic ---
 
                     const filePath = `public/${userId}-${paperId}-${file.name}`;
                     const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
