@@ -148,7 +148,7 @@
                         </div>
                         <div id="team-list" class="space-y-6"></div>
                     </div>
-                    
+
                     <!-- Konten Sertifikat -->
                     <div id="manage-certificates" class="dashboard-content hidden">
                         <div class="flex justify-between items-center mb-6">
@@ -174,7 +174,7 @@
 
     <!-- Modal Dialog -->
     <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
-         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-full">
             <div class="p-4 border-b flex justify-between items-center">
                 <h3 id="modal-title" class="text-xl font-semibold"></h3>
                 <button id="modal-close" class="text-2xl font-bold text-gray-400 hover:text-gray-600">&times;</button>
@@ -185,7 +185,7 @@
 
     <script type="module">
         // --- Inisialisasi Klien Supabase ---
-        const SUPABASE_URL = '//eahzvovzbxeccneufvec.supabase.co';
+        const SUPABASE_URL = 'https://eahzvovzbxeccneufvec.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhaHp2b3Z6YnhlY2NuZXVmdmVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1Mjc3NjMsImV4cCI6MjA2NzEwMzc2M30.Ix-UV3P6PXgw3tW0hDK0_f1x3jAWi-YJYYAC9satLdo';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -195,7 +195,6 @@
         let scheduleCache = [];
         let teamCache = [];
         let certificateCache = [];
-
 
         // --- Elemen DOM ---
         const loginPage = document.getElementById('login-page');
@@ -213,7 +212,6 @@
         const certificateCsvInput = document.getElementById('certificate-csv-input');
         const certificateImportStatus = document.getElementById('certificate-import-status');
         const certificatesTableContainer = document.getElementById('certificates-table-container');
-
         
         // --- Fungsi Helper ---
         function formatDateTimeRange(startIso, endIso) {
@@ -318,7 +316,7 @@
         function renderProgram() {
             const container = document.getElementById('program-list');
             container.innerHTML = programCache.length > 0 ? programCache.map(track => `
-                <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="bg-white rounded-lg shadow-md p-4 mb-4">
                     <div class="flex justify-between items-center">
                         <h3 class="text-xl font-bold text-gray-800">${track.name}</h3>
                         <div>
@@ -328,7 +326,7 @@
                         </div>
                     </div>
                     <div class="mt-4 pl-4 border-l-2 border-gray-200 space-y-3">
-                        ${track.topics.map(topic => `
+                        ${track.topics.length > 0 ? track.topics.map(topic => `
                             <div class="bg-gray-50 p-3 rounded-md">
                                 <div class="flex justify-between items-center">
                                     <h4 class="font-semibold text-gray-700">${topic.name}</h4>
@@ -339,19 +337,19 @@
                                     </div>
                                 </div>
                                 <div class="mt-2 pl-4 space-y-2">
-                                    ${topic.papers.map(paper => `
+                                    ${topic.papers.length > 0 ? topic.papers.map(paper => `
                                         <div class="border-t pt-2">
-                                            <p class="font-medium">${paper.title} (ID: ${paper.id})</p>
+                                            <p class="font-medium">${paper.title}</p>
                                             <p class="text-sm text-gray-500">Pembicara: ${paper.speakers?.name || 'N/A'} | Ruang: ${paper.room || 'N/A'}</p>
                                             <div class="text-right">
                                                 <button class="edit-paper-btn btn-edit" data-id="${paper.id}" data-topic-id="${topic.id}">Edit</button>
                                                 <button class="delete-paper-btn btn-delete" data-id="${paper.id}" data-name="${paper.title}">Hapus</button>
                                             </div>
                                         </div>
-                                    `).join('') || '<p class="text-xs text-gray-400">Belum ada paper.</p>'}
+                                    `).join('') : '<p class="text-xs text-gray-400">Belum ada paper.</p>'}
                                 </div>
                             </div>
-                        `).join('') || '<p class="text-sm text-gray-400">Belum ada topik.</p>'}
+                        `).join('') : '<p class="text-sm text-gray-400">Belum ada topik.</p>'}
                     </div>
                 </div>
             `).join('') : '<p>Belum ada program yang dibuat.</p>';
@@ -390,13 +388,14 @@
             }
             container.innerHTML = html;
         }
-
+        
         function renderCertificates() {
             let html = `
                 <table class="w-full text-sm text-left">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="p-2">Email Peserta</th>
+                            <th class="p-2">Nama Peserta</th>
+                            <th class="p-2">Email</th>
                             <th class="p-2">Judul Paper</th>
                             <th class="p-2">Tipe</th>
                             <th class="p-2">URL</th>
@@ -408,20 +407,21 @@
                 certificateCache.forEach(cert => {
                     html += `
                         <tr class="border-b">
+                            <td class="p-2">${cert.profiles?.full_name || 'N/A'}</td>
                             <td class="p-2">${cert.profiles?.email || 'N/A'}</td>
-                            <td class="p-2">${cert.papers?.title || 'N/A'} (ID: ${cert.paper_id})</td>
+                            <td class="p-2">${cert.papers?.title || 'N/A'}</td>
                             <td class="p-2">${cert.certificate_type}</td>
                             <td class="p-2"><a href="${cert.certificate_url}" target="_blank" class="text-blue-600 hover:underline">Lihat</a></td>
                         </tr>`;
                 });
             } else {
-                html += `<tr><td colspan="4" class="p-4 text-center">Belum ada data sertifikat.</td></tr>`;
+                html += `<tr><td colspan="5" class="p-4 text-center">Belum ada data sertifikat.</td></tr>`;
             }
 
             html += `</tbody></table>`;
             certificatesTableContainer.innerHTML = html;
         }
-        
+
         function createForm(fields, onSubmit) {
             const form = document.createElement('form');
             form.className = 'space-y-4';
@@ -540,7 +540,7 @@
                     const endTime = formEl.end_time.value ? new Date(formEl.end_time.value).toISOString() : null;
 
                     const payload = {
-                        topic_id: topicId,
+                        topic_id: isEdit ? paper.topic_id : topicId,
                         title: formEl.title.value, abstract: formEl.abstract.value, room: formEl.room.value,
                         speaker_id: formEl.speaker_id.value || null,
                         start_time: startTime, end_time: endTime,
@@ -679,7 +679,7 @@
                 }
             }
             if (target.id === 'delete-all-certificates-button') {
-                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data sertifikat peserta dan tidak dapat dibatalkan.')) {
+                if (confirm('APAKAH ANDA YAKIN? Tindakan ini akan menghapus SEMUA data sertifikat dan tidak dapat dibatalkan.')) {
                     const { error } = await supabaseClient.from('participant_certificates').delete().neq('id', 0);
                     if (error) alert('Gagal menghapus sertifikat: ' + error.message); else loadAllData();
                 }
@@ -691,43 +691,39 @@
         document.getElementById('schedule-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'sessions', document.getElementById('schedule-import-status')));
         document.getElementById('program-csv-input').addEventListener('change', e => handleProgramCsvImport(e.target.files[0], document.getElementById('program-import-status')));
         document.getElementById('team-csv-input').addEventListener('change', e => handleCsvImport(e.target.files[0], 'committees', document.getElementById('team-import-status')));
-        certificateCsvInput.addEventListener('change', e => handleCertificateCsvImport(e.target.files[0], certificateImportStatus));
-
+        document.getElementById('certificate-csv-input').addEventListener('change', e => handleCertificateCsvImport(e.target.files[0], document.getElementById('certificate-import-status')));
 
         async function handleCsvImport(file, tableName, statusElement) {
             if (!file) return;
             statusElement.textContent = 'Memproses...';
-            statusElement.className = 'mt-2 text-sm font-medium text-gray-600';
-
             Papa.parse(file, {
                 header: true, 
                 skipEmptyLines: true,
-                error: (err) => {
-                    statusElement.textContent = `Gagal membaca file CSV: ${err.message}`;
-                    statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                error: function(err) {
+                    console.error("CSV Parsing Error:", err);
+                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
+                    alert(`Gagal mem-parsing CSV: ${err.message}`);
                 },
                 complete: async (results) => {
                     if (results.errors.length) {
                         const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing CSV: ${errorMsg}`;
-                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
-                        return;
+                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
+                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
                     }
                     
                     const dataToInsert = results.data.map(row => {
-                         // **FIX**: Do NOT convert time from CSV. Let Supabase handle the raw string.
-                        // This requires the CSV time to be in a format Supabase understands,
-                        // ideally with a timezone offset like '2025-08-24 20:30:00+07:00'
+                        if (row.start_time) row.start_time = new Date(row.start_time).toISOString();
+                        if (row.end_time) row.end_time = new Date(row.end_time).toISOString();
                         return row;
                     });
 
                     const { error } = await supabaseClient.from(tableName).insert(dataToInsert);
                     if (error) {
                         statusElement.textContent = 'Gagal impor: ' + error.message;
-                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                        alert('Gagal impor: ' + error.message);
                     } else { 
                         statusElement.textContent = `Impor ${results.data.length} baris berhasil!`;
-                        statusElement.className = 'mt-2 text-sm font-medium text-green-600';
+                        alert('Impor berhasil!'); 
                         loadAllData(); 
                     }
                 }
@@ -737,21 +733,19 @@
         async function handleProgramCsvImport(file, statusElement) {
             if (!file) return;
             statusElement.textContent = 'Memproses...';
-            statusElement.className = 'mt-2 text-sm font-medium text-gray-600';
-
             Papa.parse(file, {
                 header: true, 
                 skipEmptyLines: true,
-                 error: (err) => {
-                    statusElement.textContent = `Gagal membaca file CSV: ${err.message}`;
-                    statusElement.className = 'mt-2 text-sm font-medium text-red-600';
+                error: function(err) {
+                    console.error("CSV Parsing Error:", err);
+                    statusElement.textContent = `Gagal mem-parsing CSV: ${err.message}. Periksa format file.`;
+                    alert(`Gagal mem-parsing CSV: ${err.message}`);
                 },
                 complete: async (results) => {
-                     if (results.errors.length) {
+                    if (results.errors.length) {
                          const errorMsg = results.errors.map(e => e.message).join('\n');
-                        statusElement.textContent = `Gagal mem-parsing CSV: ${errorMsg}`;
-                        statusElement.className = 'mt-2 text-sm font-medium text-red-600';
-                        return;
+                        statusElement.textContent = `Gagal mem-parsing beberapa baris: ${errorMsg}`;
+                        return alert(`Gagal mem-parsing beberapa baris: ${errorMsg}`);
                     }
                     
                     let successCount = 0;
@@ -773,7 +767,11 @@
                             
                             let speakerId = null;
                             if (row.speaker_name) {
-                                const speaker = speakersCache.find(s => s.name === row.speaker_name);
+                                let { data: speaker } = await supabaseClient.from('speakers').select('id').eq('name', row.speaker_name).single();
+                                if(!speaker){
+                                    const { data: newSpeaker } = await supabaseClient.from('speakers').insert({name: row.speaker_name}).select().single();
+                                    speaker = newSpeaker;
+                                }
                                 if (speaker) speakerId = speaker.id;
                             }
                             
@@ -783,8 +781,8 @@
                                 abstract: row.paper_abstract,
                                 room: row.room,
                                 speaker_id: speakerId,
-                                start_time: row.start_time || null,
-                                end_time: row.end_time || null,
+                                start_time: row.start_time ? new Date(row.start_time).toISOString() : null,
+                                end_time: row.end_time ? new Date(row.end_time).toISOString() : null,
                             });
                             successCount++;
                         } catch(e) {
@@ -793,12 +791,12 @@
                         }
                     }
                     statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
-                    statusElement.className = 'mt-2 text-sm font-medium text-green-600';
+                    alert('Impor program selesai!');
                     loadAllData();
                 }
             });
         }
-        
+
         async function handleCertificateCsvImport(file, statusElement) {
             if (!file) return;
             statusElement.textContent = 'Memproses...';
@@ -820,9 +818,10 @@
                     }
 
                     const rows = results.data;
+                    let successCount = 0;
                     let errorCount = 0;
                     
-                    const emails = rows.map(r => r.user_email).filter(e => e);
+                    const emails = rows.map(r => r.user_email);
                     const { data: users, error: userError } = await supabaseClient.from('profiles').select('id, email').in('email', emails);
 
                     if(userError) {
@@ -857,8 +856,9 @@
                             statusElement.className = 'mt-2 text-sm font-medium text-red-600';
                             return;
                         }
+                        successCount = dataToInsert.length;
                     }
-                    const successCount = dataToInsert.length;
+
                     statusElement.textContent = `Impor selesai. Berhasil: ${successCount}, Gagal: ${errorCount}.`;
                     statusElement.className = 'mt-2 text-sm font-medium text-green-600';
                     loadAllData();
@@ -871,3 +871,4 @@
     </script>
 </body>
 </html>
+
