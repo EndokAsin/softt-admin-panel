@@ -153,7 +153,10 @@
                     <div id="manage-certificates" class="dashboard-content hidden">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-3xl font-bold text-gray-800">Kelola Sertifikat</h1>
-                            <button id="delete-all-certificates-button" class="btn btn-secondary">Hapus Semua Sertifikat</button>
+                             <div class="flex items-center space-x-2">
+                                <button id="delete-all-certificates-button" class="btn btn-secondary">Hapus Semua</button>
+                                <button id="add-certificate-button" class="btn btn-primary">Tambah Manual</button>
+                            </div>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <h2 class="text-xl font-semibold text-gray-700">Impor Sertifikat dari CSV</h2>
@@ -431,7 +434,7 @@
                     <label for="${f.id}" class="block text-sm font-medium text-gray-700">${f.label}</label>
                     ${f.type === 'textarea' ? `<textarea id="${f.id}" name="${f.id}" class="input-field" rows="5">${f.value || ''}</textarea>`
                     : f.type === 'select' ? `<select id="${f.id}" name="${f.id}" class="input-field">${f.options}</select>`
-                    : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" class="input-field">`
+                    : `<input type="${f.type || 'text'}" id="${f.id}" name="${f.id}" value="${f.value || ''}" ${f.accept ? `accept="${f.accept}"` : ''} class="input-field">`
                     }
                 </div>
             `).join('');
@@ -651,6 +654,73 @@
                     await supabaseClient.from('committees').delete().eq('id', target.dataset.id);
                     loadAllData();
                 }
+            }
+
+            // --- Certificate Management ---
+            if (target.id === 'add-certificate-button') {
+                const form = createForm([
+                    {label: 'Email Peserta', id: 'user_email', type: 'email'},
+                    {label: 'ID Paper', id: 'paper_id', type: 'number'},
+                    {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
+                    {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
+                ], async formEl => {
+                    const file = formEl.certificate_file.files[0];
+                    const userEmail = formEl.user_email.value;
+                    const paperId = formEl.paper_id.value;
+                    const certificateType = formEl.certificate_type.value;
+
+                    if (!file || !userEmail || !paperId || !certificateType) {
+                        return alert('Semua field wajib diisi.');
+                    }
+                    if (file.type !== 'application/pdf') {
+                        return alert('File harus dalam format PDF.');
+                    }
+
+                    const submitButton = formEl.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Mengunggah...';
+
+                    const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('email', userEmail).single();
+
+                    if (profileError || !profile) {
+                         submitButton.disabled = false;
+                         submitButton.textContent = 'Simpan';
+                        return alert('User dengan email tersebut tidak ditemukan.');
+                    }
+                    const userId = profile.id;
+
+                    const filePath = `public/${userId}-${paperId}-${file.name}`;
+                    const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
+                    
+                    if (uploadError) {
+                         submitButton.disabled = false;
+                         submitButton.textContent = 'Simpan';
+                        return alert('Gagal mengunggah PDF: ' + uploadError.message);
+                    }
+
+                    const { data: urlData } = supabaseClient.storage.from('certificates').getPublicUrl(filePath);
+                    const certificateUrl = urlData.publicUrl;
+
+                    const { error: insertError } = await supabaseClient
+                        .from('participant_certificates')
+                        .insert({
+                            user_id: userId,
+                            paper_id: parseInt(paperId, 10),
+                            certificate_type: certificateType,
+                            certificate_url: certificateUrl
+                        });
+                    
+                    if (insertError) {
+                         submitButton.disabled = false;
+                         submitButton.textContent = 'Simpan';
+                        return alert('Gagal menyimpan data sertifikat: ' + insertError.message);
+                    }
+                    
+                    alert('Sertifikat berhasil diunggah!');
+                    hideModal();
+                    loadAllData();
+                });
+                showModal('Unggah Sertifikat Manual', form);
             }
             
             // --- Delete All Listeners ---
