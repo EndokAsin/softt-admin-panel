@@ -662,15 +662,17 @@
                 const paperOptions = papersCache.map(p => `<option value="${p.id}">(${p.id}) ${p.title}</option>`).join('');
                 
                 const form = createForm([
-                    {label: 'ID Paper', id: 'paper_id', type: 'number'},
+                    {label: 'Email Peserta', id: 'user_email', type: 'email'},
+                    {label: 'Pilih Paper', id: 'paper_id', type: 'select', options: `<option value="">-- Pilih Paper --</option>${paperOptions}`},
                     {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
                     {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
                 ], async formEl => {
                     const file = formEl.certificate_file.files[0];
+                    const userEmail = formEl.user_email.value;
                     const paperId = formEl.paper_id.value;
                     const certificateType = formEl.certificate_type.value;
 
-                    if (!file || !paperId || !certificateType) {
+                    if (!file || !userEmail || !paperId || !certificateType) {
                         return alert('Semua field wajib diisi.');
                     }
                     if (file.type !== 'application/pdf') {
