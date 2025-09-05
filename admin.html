@@ -660,7 +660,7 @@
                 const paperOptions = papersCache.map(p => `<option value="${p.id}">(${p.id}) ${p.title}</option>`).join('');
                 
                 const form = createForm([
-                    {label: 'ID Paper', id: 'paper_id', type: 'number'},
+                    {label: 'Pilih Paper', id: 'paper_id', type: 'select', options: `<option value="">-- Pilih Paper --</option>${paperOptions}`},
                     {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
                     {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
                 ], async formEl => {
@@ -678,8 +678,9 @@
                     const submitButton = formEl.querySelector('button[type="submit"]');
                     submitButton.disabled = true;
                     submitButton.textContent = 'Mengunggah...';
-                    
-                    const filePath = `public/${paperId}-${certificateType}-${file.name}`;
+
+                    const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+                    const filePath = `public/${paperId}-${certificateType}-${sanitizedFileName}`;
                     const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
                     
                     if (uploadError) {
@@ -697,7 +698,7 @@
                             paper_id: parseInt(paperId, 10),
                             certificate_type: certificateType,
                             certificate_url: certificateUrl,
-                            user_id: null // Explicitly set user_id to null
+                            user_id: null
                         });
                     
                     if (insertError) {
