@@ -681,32 +681,13 @@
                     submitButton.disabled = true;
                     submitButton.textContent = 'Mengunggah...';
 
-                    // --- New Logic to find user based on paper's speaker ---
-                    const selectedPaper = papersCache.find(p => p.id == paperId);
-                    const speakerId = selectedPaper?.speaker_id;
-
-                    if (!speakerId) {
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Simpan';
-                        return alert('Paper yang dipilih tidak memiliki data pembicara.');
-                    }
-                    
-                    const speakerName = speakersCache.find(s => s.id === speakerId)?.name;
-                    if (!speakerName) {
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Simpan';
-                        return alert('Data pembicara untuk paper ini tidak ditemukan.');
-                    }
-
-                    const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('full_name', speakerName).eq('role', 'participant').single();
-
+                    const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('id').eq('email', userEmail).single();
                     if (profileError || !profile) {
                          submitButton.disabled = false;
                          submitButton.textContent = 'Simpan';
-                        return alert(`Tidak ditemukan profil peserta dengan nama "${speakerName}". Pastikan nama pembicara dan nama lengkap peserta sama persis.`);
+                        return alert('User dengan email tersebut tidak ditemukan.');
                     }
                     const userId = profile.id;
-                    // --- End of New Logic ---
 
                     const filePath = `public/${userId}-${paperId}-${file.name}`;
                     const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
@@ -961,5 +942,4 @@
     </script>
 </body>
 </html>
-
 
