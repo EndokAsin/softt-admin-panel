@@ -198,6 +198,7 @@
         let scheduleCache = [];
         let teamCache = [];
         let certificateCache = [];
+        let participantsCache = [];
         let papersCache = [];
 
         // --- Elemen DOM ---
@@ -263,12 +264,13 @@
         }
 
         async function loadAllData() {
-            const [programRes, scheduleRes, speakersRes, teamRes, certificateRes, papersRes] = await Promise.all([
+            const [programRes, scheduleRes, speakersRes, teamRes, certificateRes, participantsRes, papersRes] = await Promise.all([
                 supabaseClient.from('tracks').select(`*, topics(*, papers(*, speakers(id, name)))`).order('name'),
                 supabaseClient.from('sessions').select('*').order('start_time'),
                 supabaseClient.from('speakers').select('*').order('name'),
                 supabaseClient.from('committees').select('*').order('name'),
                 supabaseClient.from('participant_certificates').select('*, profiles(full_name), papers(title)').order('created_at'),
+                supabaseClient.from('profiles').select('id, full_name').eq('role', 'participant').order('full_name'),
                 supabaseClient.from('papers').select('id, title, speaker_id').order('title')
             ]);
 
@@ -277,6 +279,7 @@
             speakersCache = speakersRes.data || [];
             teamCache = teamRes.data || [];
             certificateCache = certificateRes.data || [];
+            participantsCache = participantsRes.data || [];
             papersCache = papersRes.data || [];
 
             renderProgram();
@@ -662,15 +665,17 @@
                 const paperOptions = papersCache.map(p => `<option value="${p.id}">(${p.id}) ${p.title}</option>`).join('');
                 
                 const form = createForm([
+                    {label: 'Email Peserta', id: 'user_email', type: 'email'},
                     {label: 'Pilih Paper', id: 'paper_id', type: 'select', options: `<option value="">-- Pilih Paper --</option>${paperOptions}`},
                     {label: 'Tipe Sertifikat', id: 'certificate_type', type: 'select', options: '<option value="author">Author</option><option value="presenter">Presenter</option>'},
                     {label: 'File Sertifikat (PDF)', id: 'certificate_file', type: 'file', accept: '.pdf'},
                 ], async formEl => {
                     const file = formEl.certificate_file.files[0];
+                    const userEmail = formEl.user_email.value;
                     const paperId = formEl.paper_id.value;
                     const certificateType = formEl.certificate_type.value;
 
-                    if (!file || !paperId || !certificateType) {
+                    if (!file || !userEmail || !paperId || !certificateType) {
                         return alert('Semua field wajib diisi.');
                     }
                     if (file.type !== 'application/pdf') {
