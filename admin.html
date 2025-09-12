@@ -681,31 +681,19 @@
                     return alert('File harus dalam format PDF.');
                 }
 
-                // Di dalam event listener untuk 'add-certificate-button'
-const submitButton = formEl.querySelector('button[type="submit"]');
-submitButton.disabled = true;
-submitButton.textContent = 'Mengunggah...';
+                const submitButton = formEl.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Mengunggah...';
 
-const file = formEl.certificate_file.files[0];
-const paperId = formEl.paper_id.value;
-const certificateType = formEl.certificate_type.value;
-
-// Ganti baris ini:
-// const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
-// const filePath = `public/${paperId}-${certificateType}-${sanitizedFileName}`;
-
-// Dengan kode ini untuk membuat nama file unik
-const fileExtension = file.name.split('.').pop();
-const uniqueFileName = `${paperId}-${certificateType}-${Date.now()}.${fileExtension}`;
-const filePath = `public/${uniqueFileName}`;
-
-const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
-
-if (uploadError) {
-    submitButton.disabled = false;
-    submitButton.textContent = 'Simpan';
-    return alert('Gagal mengunggah PDF: ' + uploadError.message);
-}
+                const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+                const filePath = `public/${paperId}-${certificateType}-${sanitizedFileName}`;
+                const { error: uploadError } = await supabaseClient.storage.from('certificates').upload(filePath, file);
+                
+                if (uploadError) {
+                     submitButton.disabled = false;
+                     submitButton.textContent = 'Simpan';
+                     return alert('Gagal mengunggah PDF: ' + uploadError.message);
+                }
 
                 const { data: urlData } = supabaseClient.storage.from('certificates').getPublicUrl(filePath);
                 const certificateUrl = urlData.publicUrl;
